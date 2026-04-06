@@ -46,8 +46,8 @@ local function startFly()
             return
         end
         local moveDir = Vector3.new()
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(0,0,-1) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir + Vector3.new(0,0,1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(0,0,1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir + Vector3.new(0,0,-1) end
         if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir + Vector3.new(-1,0,0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Vector3.new(1,0,0) end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0,1,0) end
@@ -92,27 +92,21 @@ local function onTouch(otherPart)
     
     otherHumanoid.Sit = true
     
-    local direction = (otherRoot.Position - RootPart.Position).Unit
-    local bodyVelocity = Instance.new("BodyVelocity")
-    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    bodyVelocity.Velocity = direction * flingPower + Vector3.new(0, flingPower * 0.5, 0)
-    bodyVelocity.Parent = otherRoot
+    local randomDirection = Vector3.new(math.random(-flingPower, flingPower), math.random(flingPower/2, flingPower), math.random(-flingPower, flingPower))
+    local linearVelocity = Instance.new("LinearVelocity")
+    linearVelocity.MaxForce = math.huge
+    linearVelocity.Velocity = randomDirection
+    linearVelocity.Parent = otherRoot
     
-    local bodyGyro = Instance.new("BodyGyro")
-    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    bodyGyro.CFrame = otherRoot.CFrame
-    bodyGyro.Parent = otherRoot
-    
-    local av = Instance.new("BodyAngularVelocity")
-    av.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
-    av.AngularVelocity = Vector3.new(math.random(-500,500), math.random(-500,500), math.random(-500,500))
-    av.Parent = otherRoot
+    local angularVelocity = Instance.new("AngularVelocity")
+    angularVelocity.MaxTorque = math.huge
+    angularVelocity.AngularVelocity = Vector3.new(math.random(-500,500), math.random(-500,500), math.random(-500,500))
+    angularVelocity.Parent = otherRoot
     
     task.wait(1)
     
-    bodyVelocity:Destroy()
-    bodyGyro:Destroy()
-    av:Destroy()
+    linearVelocity:Destroy()
+    angularVelocity:Destroy()
 end
 
 RootPart.Touched:Connect(onTouch)
