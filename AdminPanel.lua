@@ -17,7 +17,7 @@ local Humanoid = Character:WaitForChild("Humanoid")
 local MainTab = Window:CreateTab("Player", 0)
 local Section = MainTab:CreateSection("Stats")
 
-local SpeedSlider = Section:CreateSlider({
+MainTab:CreateSlider({
     Name = "Walk Speed",
     Range = {16, 250},
     Increment = 1,
@@ -29,7 +29,7 @@ local SpeedSlider = Section:CreateSlider({
     end
 })
 
-local JumpSlider = Section:CreateSlider({
+MainTab:CreateSlider({
     Name = "Jump Power",
     Range = {50, 250},
     Increment = 1,
@@ -41,7 +41,7 @@ local JumpSlider = Section:CreateSlider({
     end
 })
 
-Section:CreateButton({
+MainTab:CreateButton({
     Name = "Example Button",
     Callback = function()
         Rayfield:Notify({
