@@ -1,3 +1,24 @@
+-- AdminPanel.lua
+local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
+
+local Window = Rayfield:CreateWindow({
+    Name = "Admin Panel",
+    LoadingTitle = "Loading...",
+    LoadingSubtitle = "by You",
+    ConfigurationSaving = {
+        Enabled = true,
+        FolderName = "AdminPanelConfig",
+        FileName = "Config"
+    },
+    KeySystem = false,
+    ToggleUIKeybind = Enum.KeyCode.RightControl,
+})
+
+local PlayersTab = Window:CreateTab("Players", 0)
+local MovementTab = Window:CreateTab("Movement", 0)
+local WorldTab = Window:CreateTab("World", 0)
+local SettingsTab = Window:CreateTab("Settings", 0)
+
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -127,20 +148,6 @@ local function killAll()
     end
     Rayfield:Notify({Title = "Kill All", Content = "Killed all NPCs/players", Duration = 2})
 end
-
-local Window = Rayfield:CreateWindow({
-    Name = "Infinite Yield Admin Panel",
-    LoadingTitle = "Loading Admin Panel...",
-    LoadingSubtitle = "by System",
-    ConfigurationSaving = {Enabled = true, FolderName = "AdminPanelConfig", FileName = "Config"},
-    KeySystem = false,
-    ToggleUIKeybind = Enum.KeyCode.RightControl,
-})
-
-local PlayersTab = Window:CreateTab("Players", 0)
-local MovementTab = Window:CreateTab("Movement", 0)
-local WorldTab = Window:CreateTab("World", 0)
-local SettingsTab = Window:CreateTab("Settings", 0)
 
 local PlayerSection = PlayersTab:CreateSection("Player Controls")
 PlayerSection:CreateButton({Name = "Bring All Players", Callback = bringAll})
