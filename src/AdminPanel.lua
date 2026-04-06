@@ -1,5 +1,5 @@
--- AdminPanel.lua
-local Library = require(script.Parent.source)
+-- AdminPanel.lua (FIXED - no require)
+-- Assumes 'Library' is already a global variable from the loader
 
 -- Create main window
 local Window = Library:MakeWindow({
