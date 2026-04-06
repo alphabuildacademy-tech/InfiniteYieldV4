@@ -1,7 +1,7 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
 local Window = Rayfield:CreateWindow({
-    Name = "Admin Panel",
+    Name = "Infinite Yield V4 - Admin Panel",
     ConfigurationSaving = {
         Enabled = false
     },
@@ -24,10 +24,9 @@ local flyBodyVelocity = nil
 local flyBodyGyro = nil
 local spinning = false
 local spinSpeed = 180
-local spinGyro = nil
-local spinConnection = nil
 local spinFlingEnabled = false
 local flingPower = 100
+local angularVelocity = nil
 
 local function startFly()
     if flying then return end
@@ -69,27 +68,15 @@ end
 local function startSpin()
     if spinning then return end
     spinning = true
-    spinGyro = Instance.new("BodyGyro")
-    spinGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    spinGyro.CFrame = RootPart.CFrame
-    spinGyro.Parent = RootPart
-    local lastCFrame = RootPart.CFrame
-    spinConnection = RunService.RenderStepped:Connect(function()
-        if not spinning then
-            if spinGyro then spinGyro:Destroy() end
-            spinConnection:Disconnect()
-            return
-        end
-        local newCF = lastCFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
-        spinGyro.CFrame = newCF
-        lastCFrame = newCF
-    end)
+    angularVelocity = Instance.new("BodyAngularVelocity")
+    angularVelocity.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    angularVelocity.AngularVelocity = Vector3.new(0, math.rad(spinSpeed), 0)
+    angularVelocity.Parent = RootPart
 end
 
 local function stopSpin()
     spinning = false
-    if spinGyro then spinGyro:Destroy() end
-    if spinConnection then spinConnection:Disconnect() end
+    if angularVelocity then angularVelocity:Destroy() end
 end
 
 local function onTouch(otherPart)
@@ -102,9 +89,30 @@ local function onTouch(otherPart)
     if not otherHumanoid then return end
     local otherRoot = otherCharacter:FindFirstChild("HumanoidRootPart")
     if not otherRoot then return end
+    
+    otherHumanoid.Sit = true
+    
     local direction = (otherRoot.Position - RootPart.Position).Unit
-    local velocity = direction * flingPower
-    otherRoot.Velocity = velocity
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bodyVelocity.Velocity = direction * flingPower + Vector3.new(0, flingPower * 0.5, 0)
+    bodyVelocity.Parent = otherRoot
+    
+    local bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    bodyGyro.CFrame = otherRoot.CFrame
+    bodyGyro.Parent = otherRoot
+    
+    local av = Instance.new("BodyAngularVelocity")
+    av.MaxTorque = Vector3.new(math.huge, math.huge, math.huge)
+    av.AngularVelocity = Vector3.new(math.random(-500,500), math.random(-500,500), math.random(-500,500))
+    av.Parent = otherRoot
+    
+    task.wait(1)
+    
+    bodyVelocity:Destroy()
+    bodyGyro:Destroy()
+    av:Destroy()
 end
 
 RootPart.Touched:Connect(onTouch)
@@ -172,8 +180,7 @@ MovementTab:CreateSlider({
     Callback = function(Value)
         spinSpeed = Value
         if spinning then
-            stopSpin()
-            startSpin()
+            angularVelocity.AngularVelocity = Vector3.new(0, math.rad(spinSpeed), 0)
         end
     end
 })
