@@ -1,7 +1,44 @@
 local Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield'))()
 
+local customTheme = {
+    TextColor = Color3.fromRGB(240, 240, 240),
+    Background = Color3.fromRGB(15, 15, 15),
+    Topbar = Color3.fromRGB(173, 216, 230),
+    Shadow = Color3.fromRGB(0, 0, 0),
+    NotificationBackground = Color3.fromRGB(20, 20, 20),
+    NotificationTextColor = Color3.fromRGB(255, 255, 255),
+    NotificationActionsBackground = Color3.fromRGB(35, 0, 70),
+    TabBackground = Color3.fromRGB(15, 15, 15),
+    TabStroke = Color3.fromRGB(85, 85, 85),
+    TabBackgroundSelected = Color3.fromRGB(210, 210, 210),
+    TabTextColor = Color3.fromRGB(149, 149, 149),
+    SelectedTabTextColor = Color3.fromRGB(255, 255, 255),
+    ElementBackground = Color3.fromRGB(35, 35, 35),
+    ElementBackgroundHover = Color3.fromRGB(40, 40, 40),
+    SecondaryElementBackground = Color3.fromRGB(25, 25, 25),
+    ElementStroke = Color3.fromRGB(50, 50, 50),
+    SecondaryElementStroke = Color3.fromRGB(40, 40, 40),
+    SliderBackground = Color3.fromRGB(50, 138, 220),
+    SliderProgress = Color3.fromRGB(50, 138, 220),
+    SliderStroke = Color3.fromRGB(58, 163, 255),
+    ToggleBackground = Color3.fromRGB(30, 30, 30),
+    ToggleEnabled = Color3.fromRGB(0, 146, 214),
+    ToggleDisabled = Color3.fromRGB(100, 100, 100),
+    ToggleEnabledStroke = Color3.fromRGB(0, 170, 255),
+    ToggleDisabledStroke = Color3.fromRGB(125, 125, 125),
+    ToggleEnabledOuterStroke = Color3.fromRGB(100, 100, 100),
+    ToggleDisabledOuterStroke = Color3.fromRGB(65, 65, 65),
+    DropdownSelected = Color3.fromRGB(40, 40, 40),
+    DropdownUnselected = Color3.fromRGB(30, 30, 30),
+    InputBackground = Color3.fromRGB(30, 30, 30),
+    InputStroke = Color3.fromRGB(65, 65, 65),
+    PlaceholderColor = Color3.fromRGB(178, 178, 178),
+}
+
 local Window = Rayfield:CreateWindow({
     Name = "Infinite Yield V4 - Admin Panel",
+    LoadingTitle = "Loading Admin Panel...",
+    LoadingSubtitle = "by You",
     ConfigurationSaving = {
         Enabled = true,
         FolderName = "UltimateAdmin",
@@ -9,6 +46,7 @@ local Window = Rayfield:CreateWindow({
     },
     KeySystem = false,
     ToggleUIKeybind = Enum.KeyCode.RightControl,
+    Theme = customTheme,
 })
 
 local Players = game:GetService("Players")
@@ -34,17 +72,21 @@ local flingingPlayers = {}
 local remoteSpyEnabled = false
 local remoteSpyConnections = {}
 
+-- Fly mode using BodyVelocity and BodyGyro
 local function startFly()
     if flying then return end
     flying = true
-    flyBodyVelocity = Instance.new("BodyVelocity")
-    flyBodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    flyBodyVelocity.Velocity = Vector3.new(0,0,0)
-    flyBodyVelocity.Parent = RootPart
-    flyBodyGyro = Instance.new("BodyGyro")
-    flyBodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-    flyBodyGyro.CFrame = RootPart.CFrame
-    flyBodyGyro.Parent = RootPart
+
+    local bodyVelocity = Instance.new("BodyVelocity")
+    bodyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    bodyVelocity.Velocity = Vector3.new(0, 0, 0)
+    bodyVelocity.Parent = RootPart
+
+    local bodyGyro = Instance.new("BodyGyro")
+    bodyGyro.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
+    bodyGyro.CFrame = RootPart.CFrame
+    bodyGyro.Parent = RootPart
+
     local moveConnection
     moveConnection = RunService.RenderStepped:Connect(function()
         if not flying then
@@ -52,17 +94,21 @@ local function startFly()
             return
         end
         local moveDir = Vector3.new()
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(0,0,-1) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir + Vector3.new(0,0,1) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir + Vector3.new(-1,0,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Vector3.new(1,0,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0,1,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir + Vector3.new(0,-1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Vector3.new(0, 0, -1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir + Vector3.new(0, 0, 1) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir + Vector3.new(-1, 0, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Vector3.new(1, 0, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Vector3.new(0, 1, 0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir + Vector3.new(0, -1, 0) end
+
         local cam = workspace.CurrentCamera
         local moveVec = (cam.CFrame.RightVector * moveDir.X + cam.CFrame.UpVector * moveDir.Y + cam.CFrame.LookVector * moveDir.Z) * 50
-        flyBodyVelocity.Velocity = moveVec
-        flyBodyGyro.CFrame = cam.CFrame
+        bodyVelocity.Velocity = moveVec
+        bodyGyro.CFrame = cam.CFrame
     end)
+
+    flyBodyVelocity = bodyVelocity
+    flyBodyGyro = bodyGyro
 end
 
 local function stopFly()
@@ -71,6 +117,14 @@ local function stopFly()
     if flyBodyGyro then flyBodyGyro:Destroy() end
 end
 
+-- Scale the character using Humanoid scale properties
+local function setCharacterScale(scaleX, scaleY, scaleZ)
+    Humanoid.BodyDepthScale = scaleZ
+    Humanoid.BodyWidthScale = scaleX
+    Humanoid.BodyHeightScale = scaleY
+end
+
+-- Spin and Fling
 local function startSpin()
     if spinning then return end
     spinning = true
@@ -95,22 +149,22 @@ local function onTouch(otherPart)
     if not otherHumanoid then return end
     local otherRoot = otherCharacter:FindFirstChild("HumanoidRootPart")
     if not otherRoot then return end
-    
+
     otherHumanoid.Sit = true
-    
+
     local randomDirection = Vector3.new(math.random(-flingPower, flingPower), math.random(flingPower/2, flingPower), math.random(-flingPower, flingPower))
     local linearVelocity = Instance.new("LinearVelocity")
     linearVelocity.MaxForce = math.huge
     linearVelocity.Velocity = randomDirection
     linearVelocity.Parent = otherRoot
-    
+
     local angularVelocity = Instance.new("AngularVelocity")
     angularVelocity.MaxTorque = math.huge
     angularVelocity.AngularVelocity = Vector3.new(math.random(-500,500), math.random(-500,500), math.random(-500,500))
     angularVelocity.Parent = otherRoot
-    
+
     task.wait(1)
-    
+
     linearVelocity:Destroy()
     angularVelocity:Destroy()
 end
@@ -133,6 +187,20 @@ local function flingPlayer(targetPlayer)
     bodyVel.Parent = targetRoot
     task.wait(1)
     bodyVel:Destroy()
+end
+
+local function flopTarget(targetPlayer)
+    local targetChar = targetPlayer.Character
+    if not targetChar then return end
+    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
+    if not targetRoot then return end
+    local targetHumanoid = targetChar:FindFirstChild("Humanoid")
+    if targetHumanoid then
+        targetHumanoid.Sit = true
+    end
+    targetRoot.CFrame = targetRoot.CFrame * CFrame.Angles(math.rad(90), 0, 0)
+    targetRoot.Velocity = Vector3.new(0, 0, 0)
+    Rayfield:Notify({Title = "Flop", Content = "Flopped " .. targetPlayer.Name, Duration = 2})
 end
 
 local function toggleRemoteSpy()
@@ -164,23 +232,24 @@ local function toggleRemoteSpy()
     end
 end
 
+-- Toggle Workspace Explorer with a proper tree view
 local function toggleWorkspaceExplorer()
     local explorerGui = Instance.new("ScreenGui")
     explorerGui.Name = "WorkspaceExplorer"
     explorerGui.Parent = game.CoreGui
-    
+
     local mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.new(0, 400, 0, 600)
     mainFrame.Position = UDim2.new(0.5, -200, 0.5, -300)
     mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     mainFrame.BorderSizePixel = 0
     mainFrame.Parent = explorerGui
-    
+
     local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 30)
     titleBar.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
     titleBar.Parent = mainFrame
-    
+
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Size = UDim2.new(1, -30, 1, 0)
     titleLabel.Position = UDim2.new(0, 5, 0, 0)
@@ -189,7 +258,7 @@ local function toggleWorkspaceExplorer()
     titleLabel.BackgroundTransparency = 1
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = titleBar
-    
+
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0, 30, 1, 0)
     closeBtn.Position = UDim2.new(1, -30, 0, 0)
@@ -200,7 +269,7 @@ local function toggleWorkspaceExplorer()
     closeBtn.MouseButton1Click:Connect(function()
         explorerGui:Destroy()
     end)
-    
+
     local scrollFrame = Instance.new("ScrollingFrame")
     scrollFrame.Size = UDim2.new(1, 0, 1, -30)
     scrollFrame.Position = UDim2.new(0, 0, 0, 30)
@@ -209,12 +278,24 @@ local function toggleWorkspaceExplorer()
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
     scrollFrame.ScrollBarThickness = 6
     scrollFrame.Parent = mainFrame
-    
-    local function buildTree(container, instance, depth)
+
+    local function getIcon(instance)
+        local className = instance.ClassName
+        local icons = {
+            ["Part"] = "rbxassetid://1841419492",
+            ["Model"] = "rbxassetid://1841419182",
+            ["Script"] = "rbxassetid://1841419622",
+            ["Tool"] = "rbxassetid://1841419669",
+            ["Humanoid"] = "rbxassetid://1841419535",
+        }
+        return icons[className] or "rbxassetid://1841419360"
+    end
+
+    local function buildTree(container, instance, depth, isLastChild)
         local btn = Instance.new("TextButton")
         btn.Size = UDim2.new(1, -10, 0, 25)
-        btn.Position = UDim2.new(0, 5, 0, #container:GetChildren() * 25)
-        btn.Text = string.rep("  ", depth) .. instance.Name .. " (" .. instance.ClassName .. ")"
+        btn.Position = UDim2.new(0, 5 + (depth * 15), 0, #container:GetChildren() * 25)
+        btn.Text = "  " .. instance.Name .. " (" .. instance.ClassName .. ")"
         btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
         btn.TextColor3 = Color3.fromRGB(200, 200, 200)
         btn.TextXAlignment = Enum.TextXAlignment.Left
@@ -222,44 +303,37 @@ local function toggleWorkspaceExplorer()
         btn.TextSize = 12
         btn.BorderSizePixel = 0
         btn.Parent = container
+
+        local icon = Instance.new("ImageLabel")
+        icon.Size = UDim2.new(0, 16, 0, 16)
+        icon.Position = UDim2.new(0, 2, 0.5, -8)
+        icon.Image = getIcon(instance)
+        icon.BackgroundTransparency = 1
+        icon.Parent = btn
+
         btn.MouseButton1Click:Connect(function()
             Rayfield:Notify({Title = "Selected", Content = instance:GetFullName(), Duration = 2})
+            print(instance:GetFullName())
         end)
-        
+
         for _, child in ipairs(instance:GetChildren()) do
-            buildTree(container, child, depth + 1)
+            buildTree(container, child, depth + 1, false)
         end
     end
-    
-    buildTree(scrollFrame, workspace, 0)
+
+    buildTree(scrollFrame, workspace, 0, true)
     scrollFrame.CanvasSize = UDim2.new(0, 0, 0, #scrollFrame:GetChildren() * 25 + 20)
 end
 
-local function setCharacterSize(scaleX, scaleY, scaleZ)
-    local scale = Vector3.new(scaleX, scaleY, scaleZ)
-    for _, part in ipairs(Character:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-            local newSize = part.Size * scale
-            part.Size = newSize
-        end
-    end
-end
-
-local function flopTarget(targetPlayer)
-    local targetChar = targetPlayer.Character
-    if not targetChar then return end
-    local targetRoot = targetChar:FindFirstChild("HumanoidRootPart")
-    if not targetRoot then return end
-    local targetHumanoid = targetChar:FindFirstChild("Humanoid")
-    if targetHumanoid then
-        targetHumanoid.Sit = true
-    end
-    targetRoot.CFrame = targetRoot.CFrame * CFrame.Angles(math.rad(90), 0, 0)
-    targetRoot.Velocity = Vector3.new(0, 0, 0)
-    Rayfield:Notify({Title = "Flop", Content = "Flopped " .. targetPlayer.Name, Duration = 2})
-end
-
+-- Create Tabs
 local MainTab = Window:CreateTab("Player", 0)
+local MovementTab = Window:CreateTab("Movement", 0)
+local TrollTab = Window:CreateTab("Troll", 0)
+local SizeTab = Window:CreateTab("Size", 0)
+local ToolsTab = Window:CreateTab("Tools", 0)
+local CustomizationTab = Window:CreateTab("Customize", 0)
+
+-- Player Tab
 local PlayerSection = MainTab:CreateSection("Stats")
 
 MainTab:CreateSlider({
@@ -286,7 +360,7 @@ MainTab:CreateSlider({
     end
 })
 
-local MovementTab = Window:CreateTab("Movement", 0)
+-- Movement Tab
 local FlySection = MovementTab:CreateSection("Fly")
 MovementTab:CreateToggle({
     Name = "Fly Mode",
@@ -339,27 +413,40 @@ MovementTab:CreateSlider({
     end
 })
 
-local TrollTab = Window:CreateTab("Troll", 0)
+-- Troll Tab
 local TrollSection = TrollTab:CreateSection("Troll Commands")
+
+local playerList = {}
+local function updatePlayerList()
+    playerList = {}
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer then
+            table.insert(playerList, plr.Name)
+        end
+    end
+end
+
+updatePlayerList()
+
+local selectedPlayer = playerList[1] or ""
+local playerDropdown = TrollTab:CreateDropdown({
+    Name = "Select Player",
+    Options = playerList,
+    CurrentOption = selectedPlayer,
+    Flag = "PlayerSelect",
+    Callback = function(option)
+        selectedPlayer = option
+    end
+})
 
 TrollTab:CreateButton({
     Name = "Flop Player",
     Callback = function()
-        local targetName = nil
-        local playerList = {}
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer then
-                table.insert(playerList, plr.Name)
-            end
-        end
-        if #playerList == 0 then
-            Rayfield:Notify({Title = "Error", Content = "No other players found", Duration = 2})
-            return
-        end
-        local selected = playerList[1]
-        local target = Players:FindFirstChild(selected)
+        local target = Players:FindFirstChild(selectedPlayer)
         if target then
             flopTarget(target)
+        else
+            Rayfield:Notify({Title = "Error", Content = "Player not found", Duration = 2})
         end
     end
 })
@@ -367,65 +454,63 @@ TrollTab:CreateButton({
 TrollTab:CreateButton({
     Name = "Fling Player",
     Callback = function()
-        local targetName = nil
-        local playerList = {}
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer then
-                table.insert(playerList, plr.Name)
-            end
-        end
-        if #playerList == 0 then
-            Rayfield:Notify({Title = "Error", Content = "No other players found", Duration = 2})
-            return
-        end
-        local selected = playerList[1]
-        local target = Players:FindFirstChild(selected)
+        local target = Players:FindFirstChild(selectedPlayer)
         if target then
             flingPlayer(target)
+        else
+            Rayfield:Notify({Title = "Error", Content = "Player not found", Duration = 2})
         end
     end
 })
 
-local SizeTab = Window:CreateTab("Size", 0)
+-- Size Tab
 local SizeSection = SizeTab:CreateSection("Character Size")
 
 SizeTab:CreateSlider({
-    Name = "Scale X",
+    Name = "Scale X (Width)",
     Range = {0.1, 5},
     Increment = 0.1,
     Suffix = "x",
     CurrentValue = 1,
     Flag = "ScaleX",
     Callback = function(Value)
-        setCharacterSize(Value, 1, 1)
+        setCharacterScale(Value, Humanoid.BodyWidthScale, Humanoid.BodyDepthScale)
     end
 })
 
 SizeTab:CreateSlider({
-    Name = "Scale Y",
+    Name = "Scale Y (Height)",
     Range = {0.1, 5},
     Increment = 0.1,
     Suffix = "x",
     CurrentValue = 1,
     Flag = "ScaleY",
     Callback = function(Value)
-        setCharacterSize(1, Value, 1)
+        setCharacterScale(Humanoid.BodyWidthScale, Value, Humanoid.BodyDepthScale)
     end
 })
 
 SizeTab:CreateSlider({
-    Name = "Scale Z",
+    Name = "Scale Z (Depth)",
     Range = {0.1, 5},
     Increment = 0.1,
     Suffix = "x",
     CurrentValue = 1,
     Flag = "ScaleZ",
     Callback = function(Value)
-        setCharacterSize(1, 1, Value)
+        setCharacterScale(Humanoid.BodyWidthScale, Humanoid.BodyHeightScale, Value)
     end
 })
 
-local ToolsTab = Window:CreateTab("Tools", 0)
+SizeTab:CreateButton({
+    Name = "Reset Size",
+    Callback = function()
+        setCharacterScale(1, 1, 1)
+        Rayfield:Notify({Title = "Size Reset", Content = "Character size reset to default", Duration = 2})
+    end
+})
+
+-- Tools Tab
 local ToolsSection = ToolsTab:CreateSection("Dev Tools")
 
 ToolsTab:CreateButton({
@@ -438,6 +523,26 @@ ToolsTab:CreateButton({
     Callback = toggleWorkspaceExplorer
 })
 
+-- Customization Tab
+local CustomSection = CustomizationTab:CreateSection("Window Customization")
+
+CustomizationTab:CreateButton({
+    Name = "Apply Custom Theme",
+    Callback = function()
+        Window:ModifyTheme(customTheme)
+        Rayfield:Notify({Title = "Theme Applied", Content = "Custom theme has been applied!", Duration = 2})
+    end
+})
+
+CustomizationTab:CreateButton({
+    Name = "Reset to Default Theme",
+    Callback = function()
+        Window:ModifyTheme("Default")
+        Rayfield:Notify({Title = "Theme Reset", Content = "Default theme restored", Duration = 2})
+    end
+})
+
+-- Startup notification
 Rayfield:Notify({
     Title = "Ultimate Admin Loaded",
     Content = "Use RightControl to toggle UI",
