@@ -36,7 +36,7 @@ local customTheme = {
 }
 
 local Window = Rayfield:CreateWindow({
-    Name = "Infinite Yield V4 - Admin Panel",
+    Name = "Infinite Yield V4 - By Z...",
     LoadingTitle = "Loading Admin Panel...",
     LoadingSubtitle = "by System",
     ConfigurationSaving = {
@@ -54,6 +54,7 @@ local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Lighting = game:GetService("Lighting")
 local HttpService = game:GetService("HttpService")
+local LogService = game:GetService("LogService")
 
 local LocalPlayer = Players.LocalPlayer
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -117,7 +118,7 @@ end
 -- ========== CHARACTER SCALING (FIXED) ==========
 local function setCharacterScale(scaleX, scaleY, scaleZ)
     pcall(function()
-        Humanoid.AutomaticScalingEnabled = true
+        Humanoid.AutomaticScalingEnabled = false
         Humanoid.BodyWidthScale = scaleX
         Humanoid.BodyHeightScale = scaleY
         Humanoid.BodyDepthScale = scaleZ
@@ -218,13 +219,39 @@ local function flopTarget(targetPlayer)
     Rayfield:Notify({Title = "Flop", Content = "Flopped " .. targetPlayer.Name, Duration = 2})
 end
 
--- ========== IN-GAME CONSOLE WINDOW ==========
+-- ========== IN-GAME CONSOLE WINDOW (WITH DRAGGING & LOG SERVICE) ==========
 local consoleGui = nil
 local consoleScroll = nil
 local consoleLines = {}
 
-local function addConsoleMessage(message, color)
-    color = color or Color3.fromRGB(255, 255, 255)
+local function MakeDraggable(frame)
+    local dragging, dragStart, startPos
+    local UserInputService = game:GetService("UserInputService")
+    
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+    
+    frame.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                        startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+end
+
+local function addConsoleMessage(message, messageType)
     if not consoleGui or not consoleGui.Parent then
         consoleGui = Instance.new("ScreenGui")
         consoleGui.Name = "InGameConsole"
@@ -263,6 +290,7 @@ local function addConsoleMessage(message, color)
                 line:Destroy()
             end
             consoleLines = {}
+            consoleScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
         end)
         
         local closeBtn = Instance.new("TextButton")
@@ -285,32 +313,79 @@ local function addConsoleMessage(message, color)
         consoleScroll.CanvasSize = UDim2.new(0, 0, 0, 0)
         consoleScroll.ScrollBarThickness = 6
         consoleScroll.Parent = mainFrame
+        
+        MakeDraggable(mainFrame)
     end
+    
+    local color = (messageType == "error" and Color3.fromRGB(255, 100, 100)) or
+                  (messageType == "warning" and Color3.fromRGB(255, 200, 100)) or
+                  Color3.fromRGB(200, 200, 200)
+    
+    local timestamp = os.date("%H:%M:%S")
+    local formattedMessage = "[" .. timestamp .. "] " .. message
     
     local lineLabel = Instance.new("TextLabel")
     lineLabel.Size = UDim2.new(1, -10, 0, 20)
     lineLabel.Position = UDim2.new(0, 5, 0, #consoleLines * 20)
-    lineLabel.Text = message
+    lineLabel.Text = formattedMessage
     lineLabel.TextColor3 = color
     lineLabel.BackgroundTransparency = 1
     lineLabel.TextXAlignment = Enum.TextXAlignment.Left
-    lineLabel.TextSize = 12
+    lineLabel.TextSize = 11
     lineLabel.Font = Enum.Font.Code
     lineLabel.Parent = consoleScroll
+    lineLabel.TextWrapped = true
+    lineLabel.TextScaled = false
+    lineLabel.Size = UDim2.new(1, -10, 0, 20)
+    
     table.insert(consoleLines, lineLabel)
     consoleScroll.CanvasSize = UDim2.new(0, 0, 0, #consoleLines * 20 + 10)
     consoleScroll.CanvasPosition = Vector2.new(0, consoleScroll.CanvasSize.Y.Offset)
 end
 
-local function printToConsole(...)
+local oldPrint = print
+local oldWarn = warn
+local oldError = error
+
+print = function(...)
     local args = {...}
     local message = ""
     for i, arg in ipairs(args) do
         message = message .. tostring(arg)
         if i < #args then message = message .. " " end
     end
-    addConsoleMessage(message, Color3.fromRGB(200, 200, 200))
-    print(...)
+    addConsoleMessage(message, "print")
+    oldPrint(...)
+end
+
+warn = function(...)
+    local args = {...}
+    local message = ""
+    for i, arg in ipairs(args) do
+        message = message .. tostring(arg)
+        if i < #args then message = message .. " " end
+    end
+    addConsoleMessage(message, "warning")
+    oldWarn(...)
+end
+
+error = function(message, level)
+    addConsoleMessage(message, "error")
+    oldError(message, level)
+end
+
+LogService.MessageOut:Connect(function(message, messageType)
+    if messageType == Enum.MessageType.MessageError then
+        addConsoleMessage(message, "error")
+    elseif messageType == Enum.MessageType.MessageWarning then
+        addConsoleMessage(message, "warning")
+    else
+        addConsoleMessage(message, "print")
+    end
+end)
+
+local function printToConsole(message, messageType)
+    addConsoleMessage(message, messageType or "print")
 end
 
 -- ========== REMOTE SPY WITH SEPARATE WINDOW ==========
@@ -385,6 +460,8 @@ local function toggleRemoteSpy()
         remoteSpyScroll.ScrollBarThickness = 6
         remoteSpyScroll.Parent = mainFrame
         
+        MakeDraggable(mainFrame)
+        
         for _, remote in ipairs(game:GetDescendants()) do
             if remote:IsA("RemoteEvent") or remote:IsA("RemoteFunction") then
                 local conn
@@ -401,6 +478,9 @@ local function toggleRemoteSpy()
                         line.TextSize = 11
                         line.Font = Enum.Font.Code
                         line.Parent = remoteSpyScroll
+                        line.TextWrapped = true
+                        line.TextScaled = false
+                        line.Size = UDim2.new(1, -10, 0, 20)
                         table.insert(remoteSpyLines, line)
                         remoteSpyScroll.CanvasSize = UDim2.new(0, 0, 0, #remoteSpyLines * 20 + 10)
                         remoteSpyScroll.CanvasPosition = Vector2.new(0, remoteSpyScroll.CanvasSize.Y.Offset)
@@ -418,6 +498,9 @@ local function toggleRemoteSpy()
                         line.TextSize = 11
                         line.Font = Enum.Font.Code
                         line.Parent = remoteSpyScroll
+                        line.TextWrapped = true
+                        line.TextScaled = false
+                        line.Size = UDim2.new(1, -10, 0, 20)
                         table.insert(remoteSpyLines, line)
                         remoteSpyScroll.CanvasSize = UDim2.new(0, 0, 0, #remoteSpyLines * 20 + 10)
                         remoteSpyScroll.CanvasPosition = Vector2.new(0, remoteSpyScroll.CanvasSize.Y.Offset)
@@ -447,11 +530,11 @@ local explorerButtons = {}
 local function getIconForInstance(instance)
     local className = instance.ClassName
     local icons = {
-        ["Model"] = "rbxassetid://1841419182",
-        ["Part"] = "rbxassetid://1841419492",
-        ["Script"] = "rbxassetid://1841419622",
-        ["LocalScript"] = "rbxassetid://1841419622",
-        ["ModuleScript"] = "rbxassetid://1841419622",
+        ["Model"] = "rbxassetid://10699139705",
+        ["Part"] = "rbxassetid://14250206650",
+        ["Script"] = "rbxassetid://3019710370",
+        ["LocalScript"] = "rbxassetid://7553924985",
+        ["ModuleScript"] = "rbxassetid://15503803917",
         ["Tool"] = "rbxassetid://1841419669",
         ["Humanoid"] = "rbxassetid://1841419535",
         ["Folder"] = "rbxassetid://1841419360",
@@ -466,7 +549,7 @@ local function getIconForInstance(instance)
     return icons[className] or "rbxassetid://1841419360"
 end
 
-local function buildExplorerTree(container, instance, depth, parentBtn)
+local function buildExplorerTree(container, instance, depth)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, -10, 0, 25)
     btn.Position = UDim2.new(0, 5 + (depth * 15), 0, #container:GetChildren() * 25)
@@ -511,7 +594,7 @@ local function buildExplorerTree(container, instance, depth, parentBtn)
             expandBtn.Text = "▼"
             if #childrenContainer:GetChildren() == 0 then
                 for _, child in ipairs(instance:GetChildren()) do
-                    buildExplorerTree(childrenContainer, child, depth + 1, btn)
+                    buildExplorerTree(childrenContainer, child, depth + 1)
                 end
                 childrenContainer.Size = UDim2.new(1, 0, 0, #childrenContainer:GetChildren() * 25)
             end
@@ -561,7 +644,7 @@ local function toggleWorkspaceExplorer()
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Size = UDim2.new(1, -60, 1, 0)
     titleLabel.Position = UDim2.new(0, 10, 0, 0)
-    titleLabel.Text = "Workspace Explorer"
+    titleLabel.Text = "Game Explorer"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleLabel.BackgroundTransparency = 1
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
@@ -581,7 +664,77 @@ local function toggleWorkspaceExplorer()
             end
         end
         explorerButtons = {}
-        buildExplorerTree(explorerScroll, workspace, 0, nil)
+        
+        local services = game:GetChildren()
+        for _, service in ipairs(services) do
+            local serviceBtn = Instance.new("TextButton")
+            serviceBtn.Size = UDim2.new(1, -10, 0, 25)
+            serviceBtn.Position = UDim2.new(0, 5, 0, #explorerScroll:GetChildren() * 25)
+            serviceBtn.Text = service.Name .. " (" .. service.ClassName .. ")"
+            serviceBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+            serviceBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            serviceBtn.TextXAlignment = Enum.TextXAlignment.Left
+            serviceBtn.Font = Enum.Font.GothamBold
+            serviceBtn.TextSize = 12
+            serviceBtn.BorderSizePixel = 0
+            serviceBtn.Parent = explorerScroll
+            
+            local serviceIcon = Instance.new("ImageLabel")
+            serviceIcon.Size = UDim2.new(0, 16, 0, 16)
+            serviceIcon.Position = UDim2.new(0, 2, 0.5, -8)
+            serviceIcon.Image = getIconForInstance(service)
+            serviceIcon.BackgroundTransparency = 1
+            serviceIcon.Parent = serviceBtn
+            
+            local serviceExpandBtn = Instance.new("TextButton")
+            serviceExpandBtn.Size = UDim2.new(0, 16, 0, 16)
+            serviceExpandBtn.Position = UDim2.new(0, -14, 0.5, -8)
+            serviceExpandBtn.Text = "▶"
+            serviceExpandBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+            serviceExpandBtn.TextSize = 10
+            serviceExpandBtn.BackgroundTransparency = 1
+            serviceExpandBtn.Visible = #service:GetChildren() > 0
+            serviceExpandBtn.Parent = serviceBtn
+            
+            local serviceChildrenContainer = Instance.new("Frame")
+            serviceChildrenContainer.Size = UDim2.new(1, 0, 0, 0)
+            serviceChildrenContainer.BackgroundTransparency = 1
+            serviceChildrenContainer.Visible = false
+            serviceChildrenContainer.Parent = explorerScroll
+            
+            serviceExpandBtn.MouseButton1Click:Connect(function()
+                if serviceChildrenContainer.Visible then
+                    serviceChildrenContainer.Visible = false
+                    serviceExpandBtn.Text = "▶"
+                else
+                    serviceChildrenContainer.Visible = true
+                    serviceExpandBtn.Text = "▼"
+                    if #serviceChildrenContainer:GetChildren() == 0 then
+                        for _, child in ipairs(service:GetChildren()) do
+                            buildExplorerTree(serviceChildrenContainer, child, 1)
+                        end
+                        serviceChildrenContainer.Size = UDim2.new(1, 0, 0, #serviceChildrenContainer:GetChildren() * 25)
+                    end
+                end
+                local totalHeight = 0
+                for _, child in ipairs(explorerScroll:GetChildren()) do
+                    if child:IsA("TextButton") then
+                        totalHeight = totalHeight + 25
+                    elseif child:IsA("Frame") and child.Visible then
+                        totalHeight = totalHeight + child.Size.Y.Offset
+                    end
+                end
+                explorerScroll.CanvasSize = UDim2.new(0, 0, 0, totalHeight + 20)
+            end)
+            
+            serviceBtn.MouseButton1Click:Connect(function()
+                Rayfield:Notify({Title = "Selected", Content = service:GetFullName(), Duration = 2})
+                printToConsole("Selected: " .. service:GetFullName())
+            end)
+            
+            table.insert(explorerButtons, serviceBtn)
+        end
+        
         explorerScroll.CanvasSize = UDim2.new(0, 0, 0, #explorerScroll:GetChildren() * 25 + 20)
     end)
     
@@ -606,7 +759,78 @@ local function toggleWorkspaceExplorer()
     explorerScroll.ScrollBarThickness = 6
     explorerScroll.Parent = mainFrame
     
-    buildExplorerTree(explorerScroll, workspace, 0, nil)
+    MakeDraggable(mainFrame)
+    
+    local services = game:GetChildren()
+    for _, service in ipairs(services) do
+        local serviceBtn = Instance.new("TextButton")
+        serviceBtn.Size = UDim2.new(1, -10, 0, 25)
+        serviceBtn.Position = UDim2.new(0, 5, 0, #explorerScroll:GetChildren() * 25)
+        serviceBtn.Text = service.Name .. " (" .. service.ClassName .. ")"
+        serviceBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+        serviceBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+        serviceBtn.TextXAlignment = Enum.TextXAlignment.Left
+        serviceBtn.Font = Enum.Font.GothamBold
+        serviceBtn.TextSize = 12
+        serviceBtn.BorderSizePixel = 0
+        serviceBtn.Parent = explorerScroll
+        
+        local serviceIcon = Instance.new("ImageLabel")
+        serviceIcon.Size = UDim2.new(0, 16, 0, 16)
+        serviceIcon.Position = UDim2.new(0, 2, 0.5, -8)
+        serviceIcon.Image = getIconForInstance(service)
+        serviceIcon.BackgroundTransparency = 1
+        serviceIcon.Parent = serviceBtn
+        
+        local serviceExpandBtn = Instance.new("TextButton")
+        serviceExpandBtn.Size = UDim2.new(0, 16, 0, 16)
+        serviceExpandBtn.Position = UDim2.new(0, -14, 0.5, -8)
+        serviceExpandBtn.Text = "▶"
+        serviceExpandBtn.TextColor3 = Color3.fromRGB(150, 150, 150)
+        serviceExpandBtn.TextSize = 10
+        serviceExpandBtn.BackgroundTransparency = 1
+        serviceExpandBtn.Visible = #service:GetChildren() > 0
+        serviceExpandBtn.Parent = serviceBtn
+        
+        local serviceChildrenContainer = Instance.new("Frame")
+        serviceChildrenContainer.Size = UDim2.new(1, 0, 0, 0)
+        serviceChildrenContainer.BackgroundTransparency = 1
+        serviceChildrenContainer.Visible = false
+        serviceChildrenContainer.Parent = explorerScroll
+        
+        serviceExpandBtn.MouseButton1Click:Connect(function()
+            if serviceChildrenContainer.Visible then
+                serviceChildrenContainer.Visible = false
+                serviceExpandBtn.Text = "▶"
+            else
+                serviceChildrenContainer.Visible = true
+                serviceExpandBtn.Text = "▼"
+                if #serviceChildrenContainer:GetChildren() == 0 then
+                    for _, child in ipairs(service:GetChildren()) do
+                        buildExplorerTree(serviceChildrenContainer, child, 1)
+                    end
+                    serviceChildrenContainer.Size = UDim2.new(1, 0, 0, #serviceChildrenContainer:GetChildren() * 25)
+                end
+            end
+            local totalHeight = 0
+            for _, child in ipairs(explorerScroll:GetChildren()) do
+                if child:IsA("TextButton") then
+                    totalHeight = totalHeight + 25
+                elseif child:IsA("Frame") and child.Visible then
+                    totalHeight = totalHeight + child.Size.Y.Offset
+                end
+            end
+            explorerScroll.CanvasSize = UDim2.new(0, 0, 0, totalHeight + 20)
+        end)
+        
+        serviceBtn.MouseButton1Click:Connect(function()
+            Rayfield:Notify({Title = "Selected", Content = service:GetFullName(), Duration = 2})
+            printToConsole("Selected: " .. service:GetFullName())
+        end)
+        
+        table.insert(explorerButtons, serviceBtn)
+    end
+    
     explorerScroll.CanvasSize = UDim2.new(0, 0, 0, #explorerScroll:GetChildren() * 25 + 20)
 end
 
@@ -627,7 +851,7 @@ MainTab:CreateSlider({
     Flag = "SpeedSlider",
     Callback = function(Value)
         Humanoid.WalkSpeed = Value
-        printToConsole("Walk Speed set to:", Value)
+        printToConsole("Walk Speed set to: " .. Value)
     end
 })
 
@@ -640,7 +864,7 @@ MainTab:CreateSlider({
     Flag = "JumpSlider",
     Callback = function(Value)
         Humanoid.JumpPower = Value
-        printToConsole("Jump Power set to:", Value)
+        printToConsole("Jump Power set to: " .. Value)
     end
 })
 
@@ -650,7 +874,7 @@ MovementTab:CreateToggle({
     Flag = "FlyToggle",
     Callback = function(State)
         if State then startFly() else stopFly() end
-        printToConsole("Fly Mode:", State and "Enabled" or "Disabled")
+        printToConsole("Fly Mode: " .. (State and "Enabled" or "Disabled"))
     end
 })
 
@@ -665,7 +889,7 @@ MovementTab:CreateToggle({
         elseif not State and spinning and not spinFlingEnabled then
             stopSpin()
         end
-        printToConsole("Spin Fling:", State and "Enabled" or "Disabled")
+        printToConsole("Spin Fling: " .. (State and "Enabled" or "Disabled"))
     end
 })
 
@@ -681,7 +905,7 @@ MovementTab:CreateSlider({
         if spinning then
             angularVelocity.AngularVelocity = Vector3.new(0, math.rad(spinSpeed), 0)
         end
-        printToConsole("Spin Speed set to:", Value, "deg/s")
+        printToConsole("Spin Speed set to: " .. Value .. " deg/s")
     end
 })
 
@@ -694,7 +918,7 @@ MovementTab:CreateSlider({
     Flag = "FlingPowerSlider",
     Callback = function(Value)
         flingPower = Value
-        printToConsole("Fling Power set to:", Value)
+        printToConsole("Fling Power set to: " .. Value)
     end
 })
 
@@ -722,7 +946,7 @@ local playerDropdown = TrollTab:CreateDropdown({
     Flag = "PlayerSelect",
     Callback = function(option)
         selectedPlayer = option
-        printToConsole("Selected player:", option)
+        printToConsole("Selected player: " .. option)
     end
 })
 
@@ -732,10 +956,10 @@ TrollTab:CreateButton({
         local target = Players:FindFirstChild(selectedPlayer)
         if target then
             flopTarget(target)
-            printToConsole("Flopped player:", selectedPlayer)
+            printToConsole("Flopped player: " .. selectedPlayer)
         else
             Rayfield:Notify({Title = "Error", Content = "Player not found", Duration = 2})
-            printToConsole("Error: Player not found -", selectedPlayer)
+            printToConsole("Error: Player not found - " .. selectedPlayer)
             updatePlayerList()
             playerDropdown:RefreshOptions(playerList, selectedPlayer)
         end
@@ -748,10 +972,10 @@ TrollTab:CreateButton({
         local target = Players:FindFirstChild(selectedPlayer)
         if target then
             flingPlayer(target)
-            printToConsole("Flung player:", selectedPlayer)
+            printToConsole("Flung player: " .. selectedPlayer)
         else
             Rayfield:Notify({Title = "Error", Content = "Player not found", Duration = 2})
-            printToConsole("Error: Player not found -", selectedPlayer)
+            printToConsole("Error: Player not found - " .. selectedPlayer)
             updatePlayerList()
             playerDropdown:RefreshOptions(playerList, selectedPlayer)
         end
@@ -763,11 +987,11 @@ SizeTab:CreateSlider({
     Range = {0.1, 5},
     Increment = 0.1,
     Suffix = "x",
-    CurrentValue = 1,
+    CurrentValue = Humanoid.BodyWidthScale,
     Flag = "ScaleX",
     Callback = function(Value)
         setCharacterScale(Value, Humanoid.BodyHeightScale, Humanoid.BodyDepthScale)
-        printToConsole("Character Width set to:", Value)
+        printToConsole("Character Width set to: " .. Value)
     end
 })
 
@@ -776,11 +1000,11 @@ SizeTab:CreateSlider({
     Range = {0.1, 5},
     Increment = 0.1,
     Suffix = "x",
-    CurrentValue = 1,
+    CurrentValue = Humanoid.BodyHeightScale,
     Flag = "ScaleY",
     Callback = function(Value)
         setCharacterScale(Humanoid.BodyWidthScale, Value, Humanoid.BodyDepthScale)
-        printToConsole("Character Height set to:", Value)
+        printToConsole("Character Height set to: " .. Value)
     end
 })
 
@@ -789,11 +1013,11 @@ SizeTab:CreateSlider({
     Range = {0.1, 5},
     Increment = 0.1,
     Suffix = "x",
-    CurrentValue = 1,
+    CurrentValue = Humanoid.BodyDepthScale,
     Flag = "ScaleZ",
     Callback = function(Value)
         setCharacterScale(Humanoid.BodyWidthScale, Humanoid.BodyHeightScale, Value)
-        printToConsole("Character Depth set to:", Value)
+        printToConsole("Character Depth set to: " .. Value)
     end
 })
 
@@ -812,7 +1036,7 @@ ToolsTab:CreateButton({
 })
 
 ToolsTab:CreateButton({
-    Name = "Open Workspace Explorer",
+    Name = "Open Game Explorer",
     Callback = toggleWorkspaceExplorer
 })
 
@@ -846,7 +1070,7 @@ printToConsole("Ultimate Admin Panel Loaded!")
 printToConsole("Use RightControl to toggle UI")
 
 Rayfield:Notify({
-    Title = "Ultimate Admin Loaded",
+    Title = "Infinite Yield V4",
     Content = "Use RightControl to toggle UI",
     Duration = 3
 })
@@ -856,7 +1080,7 @@ Players.PlayerAdded:Connect(function()
     if playerDropdown then
         playerDropdown:RefreshOptions(playerList, selectedPlayer)
     end
-    printToConsole("Player joined:", Players[#Players:GetPlayers()].Name)
+    printToConsole("Player joined: " .. Players[#Players:GetPlayers()].Name)
 end)
 
 Players.PlayerRemoving:Connect(function(playerLeft)
@@ -864,5 +1088,5 @@ Players.PlayerRemoving:Connect(function(playerLeft)
     if playerDropdown then
         playerDropdown:RefreshOptions(playerList, selectedPlayer)
     end
-    printToConsole("Player left:", playerLeft.Name)
+    printToConsole("Player left: " .. playerLeft.Name)
 end)
