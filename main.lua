@@ -534,7 +534,7 @@ local function getIconForInstance(instance)
         ["Part"] = "rbxassetid://14250206650",
         ["Script"] = "rbxassetid://3019710370",
         ["LocalScript"] = "rbxassetid://7553924985",
-        ["ModuleScript"] = "rbxassetid://15503803917",
+        ["ModuleScript"] = "rbxassetid://1841419622",
         ["Tool"] = "rbxassetid://1841419669",
         ["Humanoid"] = "rbxassetid://1841419535",
         ["Folder"] = "rbxassetid://1841419360",
