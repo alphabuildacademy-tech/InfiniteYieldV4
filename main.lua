@@ -497,6 +497,20 @@ function Library:CreateWindow(title)
                 end)
                 local S = {}
 
+                function S:CreateLabel(n)
+                    local Lbl = Create("TextLabel", {
+                        Parent = Content,
+                        BackgroundTransparency = 1,
+                        Size = UDim2.new(1, 0, 0, 30),
+                        Font = "Gotham",
+                        Text = n,
+                        TextColor3 = Color3.fromRGB(200, 200, 200),
+                        TextSize = 14,
+                        TextXAlignment = "Center"
+                    })
+                    return Lbl
+                end
+
                 function S:CreateToggle(n, def, cb)
                     local toggleValue = def or false
                     local toggleObject = nil
@@ -2093,11 +2107,6 @@ UtilitySection:CreateButton("Server Hop (;serverhop)", function()
     ServerHop()
 end)
 
-UtilitySection:CreateButton("Join Player (;join)", function()
-    local name = "Type username"
-    -- Would need a textbox for this
-end)
-
 -- Commands Tab
 local CommandsTab = Window:CreateTab("Commands", "search")
 local CommandsSubTab = CommandsTab:CreateSubTab("Help", "globe")
@@ -2137,11 +2146,12 @@ CommandsSection:CreateButton("Show All Commands (;cmds)", function()
     ]])
 end)
 
--- Info Tab
+-- Info Tab (FIXED - Using CreateLabel which now exists)
 local InfoTab = Window:CreateTab("Info", "account")
 local InfoSubTab = InfoTab:CreateSubTab("About", "user")
 local InfoSection = InfoSubTab:CreateSection("Information")
 
+-- Now CreateLabel is available in the UI library!
 InfoSection:CreateLabel("Universal Admin Panel")
 InfoSection:CreateLabel("")
 InfoSection:CreateLabel("Similar to Infinite Yield")
