@@ -1085,79 +1085,65 @@ end
 -- ==================== UNIVERSAL ADMIN PANEL ====================
 
 -- Variables
-local Players = game:GetService("Players")
+local PlayersService = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local Camera = Workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
+local LocalPlayer = PlayersService.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
-local TweenService = game:GetService("TweenService")
-local VirtualUser = game:GetService("VirtualUser")
 local CoreGui = game:GetService("CoreGui")
 
 -- Admin Settings
 local Admin = {
-    -- Player Settings
     Speed = 16,
     JumpPower = 50,
     Fly = false,
     Noclip = false,
     InfiniteJump = false,
     Invisible = false,
-    
-    -- Target Player (for fling, spin, kill)
+    GodMode = false,
     TargetPlayer = nil,
     TargetPlayerName = "None",
-    
-    -- UI
-    ShowConsole = true,
+    SpinSpeed = 360,
 }
 
--- Fly variables
+-- Feature states
 local flying = false
 local noclip = false
-local flyBodyVelocity = nil
-local noclipParts = {}
-local flyConnection = nil
-
--- Infinite Jump
 local infiniteJump = false
-local originalJumpPower = 50
-local jumpConnection = nil
-
--- Invisible
 local invisible = false
+local godMode = false
+local spinning = false
+local flinging = false
+
+-- Connections and objects
+local flyBodyVelocity = nil
+local flyConnection = nil
+local noclipConnection = nil
+local jumpConnection = nil
+local godModeConnection = nil
+local spinConnection = nil
+local flingConnection = nil
 local originalTransparency = {}
 
--- Spin variables
-local spinning = false
-local spinConnection = nil
-local spinSpeed = 360
-
--- Fling variables
-local flinging = false
-local flingConnection = nil
-
 -- Console output
-local function ConsolePrint(msg, color)
-    color = color or Color3.fromRGB(255, 255, 255)
+local function ConsolePrint(msg)
     print(msg)
 end
 
--- ==================== UI POPUP FUNCTIONS ====================
+-- ==================== COMMAND PROMPT ====================
 
--- Create a draggable popup window
-local function CreatePopup(title, content, size)
+local function ShowCommandPrompt(defaultCommand)
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "PopupGui"
+    screenGui.Name = "CommandPromptGui"
     screenGui.Parent = CoreGui
     screenGui.ResetOnSpawn = false
     
     local frame = Instance.new("Frame")
-    frame.Size = size or UDim2.new(0, 500, 0, 400)
-    frame.Position = UDim2.new(0.5, -250, 0.5, -200)
+    frame.Size = UDim2.new(0, 400, 0, 120)
+    frame.Position = UDim2.new(0.5, -200, 0.5, -60)
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BackgroundTransparency = 0
     frame.BorderSizePixel = 0
@@ -1171,11 +1157,9 @@ local function CreatePopup(title, content, size)
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Parent = frame
     
-    -- Title bar
     local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 35)
     titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    titleBar.BackgroundTransparency = 0
     titleBar.Parent = frame
     
     local titleCorner = Instance.new("UICorner")
@@ -1186,7 +1170,7 @@ local function CreatePopup(title, content, size)
     titleLabel.Size = UDim2.new(1, -40, 1, 0)
     titleLabel.Position = UDim2.new(0, 10, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = title
+    titleLabel.Text = "Execute Command"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleLabel.TextSize = 14
     titleLabel.Font = Enum.Font.GothamBold
@@ -1197,7 +1181,6 @@ local function CreatePopup(title, content, size)
     closeBtn.Size = UDim2.new(0, 30, 0, 30)
     closeBtn.Position = UDim2.new(1, -35, 0, 2.5)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200, 55, 55)
-    closeBtn.BackgroundTransparency = 0
     closeBtn.Text = "X"
     closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     closeBtn.TextSize = 14
@@ -1212,7 +1195,55 @@ local function CreatePopup(title, content, size)
         screenGui:Destroy()
     end)
     
-    -- Make draggable
+    local inputBox = Instance.new("TextBox")
+    inputBox.Size = UDim2.new(1, -20, 0, 35)
+    inputBox.Position = UDim2.new(0, 10, 0, 45)
+    inputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    inputBox.Text = defaultCommand or ""
+    inputBox.PlaceholderText = "Enter command (e.g., ;fly)"
+    inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+    inputBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
+    inputBox.TextSize = 13
+    inputBox.Font = Enum.Font.Gotham
+    inputBox.ClearTextOnFocus = false
+    inputBox.Parent = frame
+    
+    local inputCorner = Instance.new("UICorner")
+    inputCorner.CornerRadius = UDim.new(0, 4)
+    inputCorner.Parent = inputBox
+    
+    local execBtn = Instance.new("TextButton")
+    execBtn.Size = UDim2.new(0, 80, 0, 30)
+    execBtn.Position = UDim2.new(1, -90, 1, -40)
+    execBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
+    execBtn.Text = "Execute"
+    execBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    execBtn.TextSize = 13
+    execBtn.Font = Enum.Font.GothamBold
+    execBtn.Parent = frame
+    
+    local execCorner = Instance.new("UICorner")
+    execCorner.CornerRadius = UDim.new(0, 4)
+    execCorner.Parent = execBtn
+    
+    execBtn.MouseButton1Click:Connect(function()
+        local cmd = inputBox.Text
+        if cmd and cmd ~= "" then
+            ProcessCommand(cmd)
+        end
+        screenGui:Destroy()
+    end)
+    
+    inputBox.FocusLost:Connect(function(enterPressed)
+        if enterPressed then
+            local cmd = inputBox.Text
+            if cmd and cmd ~= "" then
+                ProcessCommand(cmd)
+            end
+            screenGui:Destroy()
+        end
+    end)
+    
     local dragging = false
     local dragStart, startPos
     
@@ -1237,7 +1268,98 @@ local function CreatePopup(title, content, size)
         end
     end)
     
-    -- Content
+    task.wait()
+    inputBox:CaptureFocus()
+    
+    return screenGui
+end
+
+-- ==================== UI POPUP FUNCTIONS ====================
+
+local function CreatePopup(title, content, size)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "PopupGui"
+    screenGui.Parent = CoreGui
+    screenGui.ResetOnSpawn = false
+    
+    local frame = Instance.new("Frame")
+    frame.Size = size or UDim2.new(0, 500, 0, 400)
+    frame.Position = UDim2.new(0.5, -250, 0.5, -200)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.BackgroundTransparency = 0
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(45, 45, 45)
+    stroke.Parent = frame
+    
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    titleBar.Parent = frame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -40, 1, 0)
+    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = title
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 14
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = titleBar
+    
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0, 2.5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 55, 55)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 14
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = titleBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeBtn
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+    end)
+    
+    local dragging = false
+    local dragStart, startPos
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+    
+    titleBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
     local contentFrame = Instance.new("ScrollingFrame")
     contentFrame.Size = UDim2.new(1, -20, 1, -45)
     contentFrame.Position = UDim2.new(0, 10, 0, 40)
@@ -1291,7 +1413,6 @@ local function CreatePopup(title, content, size)
         label.Size = UDim2.new(1, 0, 0, label.TextBounds.Y + 10)
     end
     
-    -- Update canvas size
     local function updateCanvas()
         contentFrame.CanvasSize = UDim2.new(0, 0, 0, uiList.AbsoluteContentSize.Y + 10)
     end
@@ -1303,28 +1424,28 @@ local function CreatePopup(title, content, size)
     return screenGui
 end
 
--- Command list popup with search
+-- Command list popup
 local function ShowCommandList()
-    local commands = {
-        {cmd = ";speed [value]", desc = "Set walk speed", exec = function() end},
-        {cmd = ";jumppower [value]", desc = "Set jump power", exec = function() end},
-        {cmd = ";fly", desc = "Toggle fly mode", exec = function() end},
-        {cmd = ";noclip", desc = "Toggle noclip", exec = function() end},
-        {cmd = ";infjump", desc = "Toggle infinite jump", exec = function() end},
-        {cmd = ";invis", desc = "Toggle invisibility", exec = function() end},
-        {cmd = ";target [name]", desc = "Select target player", exec = function() end},
-        {cmd = ";spin", desc = "Spin target", exec = function() end},
-        {cmd = ";fling", desc = "Fling target", exec = function() end},
-        {cmd = ";kill [name]", desc = "Kill target player", exec = function() end},
-        {cmd = ";tp [name]", desc = "Teleport to player", exec = function() end},
-        {cmd = ";headsit [name]", desc = "Sit on player's head", exec = function() end},
-        {cmd = ";btools", desc = "Give building tools", exec = function() end},
-        {cmd = ";dex", desc = "Open DEX Explorer", exec = function() end},
-        {cmd = ";serverinfo", desc = "Show server info", exec = function() end},
-        {cmd = ";serverhop", desc = "Hop to new server", exec = function() end},
-        {cmd = ";join [name]", desc = "Join a player", exec = function() end},
-        {cmd = ";creator", desc = "Show creator info", exec = function() end},
-        {cmd = ";cmds", desc = "Show this menu", exec = function() end},
+    local commandsList = {
+        {cmd = ";speed [value]", desc = "Set walk speed"},
+        {cmd = ";jumppower [value]", desc = "Set jump power"},
+        {cmd = ";fly", desc = "Toggle fly mode"},
+        {cmd = ";noclip", desc = "Toggle noclip"},
+        {cmd = ";infjump", desc = "Toggle infinite jump"},
+        {cmd = ";invis", desc = "Toggle invisibility"},
+        {cmd = ";godmode", desc = "Toggle god mode"},
+        {cmd = ";target [name]", desc = "Select target player"},
+        {cmd = ";spin [speed]", desc = "Spin target (optional speed)"},
+        {cmd = ";fling", desc = "Fling target"},
+        {cmd = ";kill [name]", desc = "Kill target player"},
+        {cmd = ";tp [name]", desc = "Teleport to player"},
+        {cmd = ";headsit [name]", desc = "Sit on player's head"},
+        {cmd = ";btools", desc = "Give building tools"},
+        {cmd = ";dex", desc = "Open DEX Explorer"},
+        {cmd = ";serverinfo", desc = "Show server info"},
+        {cmd = ";serverhop", desc = "Hop to new server"},
+        {cmd = ";cmds", desc = "Show this menu"},
+        {cmd = ";creator", desc = "Show creator info"},
     }
     
     local screenGui = Instance.new("ScreenGui")
@@ -1348,7 +1469,6 @@ local function ShowCommandList()
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Parent = frame
     
-    -- Title bar
     local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 35)
     titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -1387,7 +1507,6 @@ local function ShowCommandList()
         screenGui:Destroy()
     end)
     
-    -- Search bar
     local searchBox = Instance.new("TextBox")
     searchBox.Size = UDim2.new(1, -20, 0, 35)
     searchBox.Position = UDim2.new(0, 10, 0, 45)
@@ -1404,7 +1523,6 @@ local function ShowCommandList()
     searchCorner.CornerRadius = UDim.new(0, 4)
     searchCorner.Parent = searchBox
     
-    -- Command list
     local listFrame = Instance.new("ScrollingFrame")
     listFrame.Size = UDim2.new(1, -20, 1, -100)
     listFrame.Position = UDim2.new(0, 10, 0, 90)
@@ -1428,7 +1546,7 @@ local function ShowCommandList()
         
         searchText = string.lower(searchText or "")
         
-        for _, cmd in pairs(commands) do
+        for _, cmd in pairs(commandsList) do
             if searchText == "" or string.find(string.lower(cmd.cmd), searchText) or string.find(string.lower(cmd.desc), searchText) then
                 local cmdFrame = Instance.new("Frame")
                 cmdFrame.Size = UDim2.new(1, 0, 0, 40)
@@ -1440,7 +1558,7 @@ local function ShowCommandList()
                 cmdCorner.Parent = cmdFrame
                 
                 local cmdLabel = Instance.new("TextLabel")
-                cmdLabel.Size = UDim2.new(0.35, -10, 1, 0)
+                cmdLabel.Size = UDim2.new(0.4, -10, 1, 0)
                 cmdLabel.Position = UDim2.new(0, 10, 0, 0)
                 cmdLabel.BackgroundTransparency = 1
                 cmdLabel.Text = cmd.cmd
@@ -1451,8 +1569,8 @@ local function ShowCommandList()
                 cmdLabel.Parent = cmdFrame
                 
                 local descLabel = Instance.new("TextLabel")
-                descLabel.Size = UDim2.new(0.5, -10, 1, 0)
-                descLabel.Position = UDim2.new(0.35, 0, 0, 0)
+                descLabel.Size = UDim2.new(0.45, -10, 1, 0)
+                descLabel.Position = UDim2.new(0.4, 0, 0, 0)
                 descLabel.BackgroundTransparency = 1
                 descLabel.Text = cmd.desc
                 descLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
@@ -1476,19 +1594,12 @@ local function ShowCommandList()
                 execCorner.Parent = execBtn
                 
                 execBtn.MouseButton1Click:Connect(function()
-                    -- Execute the command
-                    local chatBar = game:GetService("StarterGui"):WaitForChild("Chat"):WaitForChild("Frame"):WaitForChild("ChatBarParentFrame"):WaitForChild("ChatBar")
-                    if chatBar then
-                        chatBar:CaptureFocus()
-                        chatBar.Text = cmd.cmd
-                        chatBar:ReleaseFocus()
-                    end
                     screenGui:Destroy()
+                    ShowCommandPrompt(cmd.cmd)
                 end)
             end
         end
         
-        -- Update canvas size
         task.wait()
         listFrame.CanvasSize = UDim2.new(0, 0, 0, cmdList.AbsoluteContentSize.Y + 10)
     end
@@ -1499,7 +1610,6 @@ local function ShowCommandList()
     
     populateList("")
     
-    -- Make draggable
     local dragging = false
     local dragStart, startPos
     
@@ -1529,49 +1639,47 @@ end
 
 -- Server info popup
 local function ShowServerInfoPopup()
-    local placeId = game.PlaceId
-    local jobId = game.JobId
-    local playerCount = #Players:GetPlayers()
-    local maxPlayers = game.Players.MaxPlayers
-    local ping = game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+    local placeId = tostring(game.PlaceId)
+    local jobId = tostring(game.JobId)
+    local playerCount = tostring(#PlayersService:GetPlayers())
+    local maxPlayers = tostring(game.Players.MaxPlayers)
+    local ping = tostring(game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
     
-local infoText = string.format("Place ID: %d\nJob ID: %s\nPlayers: %d/%d\nPing: %d ms\n\nServer Time: %s", 
-    placeId, jobId, playerCount, maxPlayers, ping, os.date("%H:%M:%S"))
+    local infoText = "Place ID: " .. placeId .. 
+        "\nJob ID: " .. jobId .. 
+        "\nPlayers: " .. playerCount .. "/" .. maxPlayers .. 
+        "\nPing: " .. ping .. " ms" ..
+        "\n\nServer Time: " .. os.date("%H:%M:%S")
     
     CreatePopup("Server Info", infoText, UDim2.new(0, 400, 0, 300))
 end
 
 -- ==================== PLAYER MANAGEMENT ====================
 
--- Get all players
 local function GetAllPlayers()
     local players = {}
-    for _, player in pairs(Players:GetPlayers()) do
+    for _, player in pairs(PlayersService:GetPlayers()) do
         table.insert(players, player)
     end
     return players
 end
 
--- Get player by name or partial name
 local function GetPlayer(input)
     if type(input) == "string" then
-        for _, player in pairs(Players:GetPlayers()) do
+        for _, player in pairs(PlayersService:GetPlayers()) do
             if string.lower(player.Name) == string.lower(input) or string.lower(player.DisplayName) == string.lower(input) then
                 return player
             end
         end
-        for _, player in pairs(Players:GetPlayers()) do
+        for _, player in pairs(PlayersService:GetPlayers()) do
             if string.find(string.lower(player.Name), string.lower(input)) or string.find(string.lower(player.DisplayName), string.lower(input)) then
                 return player
             end
         end
-    elseif type(input) == "number" then
-        return Players:GetPlayerByUserId(input)
     end
     return nil
 end
 
--- Get player from selection dropdown
 local function UpdateTargetList()
     local players = GetAllPlayers()
     local names = {"None"}
@@ -1581,6 +1689,48 @@ local function UpdateTargetList()
         end
     end
     return names
+end
+
+-- ==================== GOD MODE ====================
+local function StartGodMode()
+    if godMode then return end
+    godMode = true
+    
+    godModeConnection = RunService.RenderStepped:Connect(function()
+        if godMode and LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.BreakJointsOnDeath = false
+                humanoid.MaxHealth = math.huge
+                humanoid.Health = math.huge
+            end
+        end
+    end)
+    
+    ConsolePrint("God Mode: ON")
+end
+
+local function StopGodMode()
+    if not godMode then return end
+    godMode = false
+    
+    if godModeConnection then
+        godModeConnection:Disconnect()
+        godModeConnection = nil
+    end
+    
+    if LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.BreakJointsOnDeath = true
+            humanoid.MaxHealth = 100
+            if humanoid.Health > 100 then
+                humanoid.Health = 100
+            end
+        end
+    end
+    
+    ConsolePrint("God Mode: OFF")
 end
 
 -- ==================== FLY SYSTEM ====================
@@ -1594,12 +1744,10 @@ local function StartFly()
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
     
-    -- Create body velocity
     flyBodyVelocity = Instance.new("BodyVelocity")
     flyBodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
     flyBodyVelocity.Parent = hrp
     
-    -- Movement loop
     flyConnection = RunService.RenderStepped:Connect(function()
         if flying and LocalPlayer.Character and hrp and hrp.Parent then
             local moveDirection = Vector3.new(0, 0, 0)
@@ -1632,12 +1780,11 @@ local function StartFly()
                                          Camera.CFrame.UpVector * moveDirection.Y + 
                                          Camera.CFrame.LookVector * moveDirection.Z) * speed
             
-            -- Disable gravity
             hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
         end
     end)
     
-    ConsolePrint("✈️ Fly: ON")
+    ConsolePrint("Fly: ON")
 end
 
 local function StopFly()
@@ -1654,58 +1801,48 @@ local function StopFly()
         flyConnection = nil
     end
     
-    ConsolePrint("✈️ Fly: OFF")
+    ConsolePrint("Fly: OFF")
 end
 
--- ==================== NOCLIP SYSTEM ====================
+-- ==================== NOCLIP SYSTEM (FIXED) ====================
+local function UpdateNoclip()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = not noclip
+        end
+    end
+end
+
 local function StartNoclip()
     if noclip then return end
     noclip = true
     
-    local char = LocalPlayer.Character
-    if not char then return end
+    UpdateNoclip()
     
-    -- Store original CanCollide values and disable collision
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            noclipParts[part] = part.CanCollide
-            part.CanCollide = false
-        end
-    end
-    
-    -- Keep noclip active on new parts
-    local connection
-    connection = char.DescendantAdded:Connect(function(part)
-        if noclip and part:IsA("BasePart") then
-            noclipParts[part] = part.CanCollide
-            part.CanCollide = false
+    noclipConnection = RunService.RenderStepped:Connect(function()
+        if noclip then
+            UpdateNoclip()
         end
     end)
     
-    table.insert(noclipParts, connection)
-    
-    ConsolePrint("💨 Noclip: ON")
+    ConsolePrint("Noclip: ON")
 end
 
 local function StopNoclip()
     if not noclip then return end
     noclip = false
     
-    local char = LocalPlayer.Character
-    if char then
-        for part, original in pairs(noclipParts) do
-            if type(original) == "boolean" and part.Parent == char then
-                pcall(function()
-                    part.CanCollide = original
-                end)
-            elseif type(original) == "RBXScriptConnection" then
-                original:Disconnect()
-            end
-        end
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
     end
-    noclipParts = {}
     
-    ConsolePrint("💨 Noclip: OFF")
+    UpdateNoclip()
+    
+    ConsolePrint("Noclip: OFF")
 end
 
 -- ==================== INFINITE JUMP ====================
@@ -1722,7 +1859,7 @@ local function StartInfiniteJump()
         end
     end)
     
-    ConsolePrint("🦘 Infinite Jump: ON")
+    ConsolePrint("Infinite Jump: ON")
 end
 
 local function StopInfiniteJump()
@@ -1733,41 +1870,42 @@ local function StopInfiniteJump()
         jumpConnection = nil
     end
     
-    ConsolePrint("🦘 Infinite Jump: OFF")
+    ConsolePrint("Infinite Jump: OFF")
 end
 
 -- ==================== SPIN SYSTEM ====================
-local function StartSpin(targetPlayer)
+local function StartSpin(speed)
     if spinning then return end
     
-    local target = targetPlayer or Admin.TargetPlayer
+    local target = Admin.TargetPlayer
     if not target or target == LocalPlayer then
-        ConsolePrint("❌ No target selected for spin!")
+        ConsolePrint("No target selected for spin!")
         return
     end
     
     local char = target.Character
     if not char then
-        ConsolePrint("❌ Target has no character!")
+        ConsolePrint("Target has no character!")
         return
     end
     
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then
-        ConsolePrint("❌ Target has no HumanoidRootPart!")
+        ConsolePrint("Target has no HumanoidRootPart!")
         return
     end
     
     spinning = true
+    local spinSpeedValue = speed or Admin.SpinSpeed
     
     spinConnection = RunService.RenderStepped:Connect(function(dt)
         if spinning and target.Character and hrp and hrp.Parent then
-            local newAngle = spinSpeed * dt
+            local newAngle = spinSpeedValue * dt
             hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(newAngle), 0)
         end
     end)
     
-    ConsolePrint("🌀 Spinning " .. target.Name .. "!")
+    ConsolePrint("Spinning " .. target.Name .. " at speed " .. spinSpeedValue .. "!")
 end
 
 local function StopSpin()
@@ -1779,28 +1917,28 @@ local function StopSpin()
         spinConnection = nil
     end
     
-    ConsolePrint("🌀 Spin stopped!")
+    ConsolePrint("Spin stopped!")
 end
 
 -- ==================== FLING SYSTEM ====================
-local function StartFling(targetPlayer)
+local function StartFling()
     if flinging then return end
     
-    local target = targetPlayer or Admin.TargetPlayer
+    local target = Admin.TargetPlayer
     if not target or target == LocalPlayer then
-        ConsolePrint("❌ No target selected for fling!")
+        ConsolePrint("No target selected for fling!")
         return
     end
     
     local char = target.Character
     if not char then
-        ConsolePrint("❌ Target has no character!")
+        ConsolePrint("Target has no character!")
         return
     end
     
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then
-        ConsolePrint("❌ Target has no HumanoidRootPart!")
+        ConsolePrint("Target has no HumanoidRootPart!")
         return
     end
     
@@ -1813,7 +1951,7 @@ local function StartFling(targetPlayer)
         end
     end)
     
-    ConsolePrint("💥 Flinging " .. target.Name .. "!")
+    ConsolePrint("Flinging " .. target.Name .. "!")
 end
 
 local function StopFling()
@@ -1825,14 +1963,14 @@ local function StopFling()
         flingConnection = nil
     end
     
-    ConsolePrint("💥 Fling stopped!")
+    ConsolePrint("Fling stopped!")
 end
 
 -- ==================== KILL PLAYER ====================
 local function KillPlayer(targetPlayer)
     local target = targetPlayer or Admin.TargetPlayer
     if not target or target == LocalPlayer then
-        ConsolePrint("❌ No target selected to kill!")
+        ConsolePrint("No target selected to kill!")
         return
     end
     
@@ -1841,12 +1979,12 @@ local function KillPlayer(targetPlayer)
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
             humanoid.Health = 0
-            ConsolePrint("💀 Killed " .. target.Name .. "!")
+            ConsolePrint("Killed " .. target.Name .. "!")
         else
-            ConsolePrint("❌ Could not kill " .. target.Name .. "!")
+            ConsolePrint("Could not kill " .. target.Name .. "!")
         end
     else
-        ConsolePrint("❌ " .. target.Name .. " has no character!")
+        ConsolePrint(target.Name .. " has no character!")
     end
 end
 
@@ -1854,19 +1992,19 @@ end
 local function TeleportToPlayer(targetPlayer)
     local target = targetPlayer
     if not target or target == LocalPlayer then
-        ConsolePrint("❌ No target selected to teleport to!")
+        ConsolePrint("No target selected to teleport to!")
         return
     end
     
     local targetChar = target.Character
     if not targetChar then
-        ConsolePrint("❌ Target has no character!")
+        ConsolePrint("Target has no character!")
         return
     end
     
     local localChar = LocalPlayer.Character
     if not localChar then
-        ConsolePrint("❌ You have no character!")
+        ConsolePrint("You have no character!")
         return
     end
     
@@ -1875,9 +2013,9 @@ local function TeleportToPlayer(targetPlayer)
     
     if localHRP then
         localHRP.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
-        ConsolePrint("✨ Teleported to " .. target.Name .. "!")
+        ConsolePrint("Teleported to " .. target.Name .. "!")
     else
-        ConsolePrint("❌ Could not teleport!")
+        ConsolePrint("Could not teleport!")
     end
 end
 
@@ -1885,25 +2023,25 @@ end
 local function HeadSit(targetPlayer)
     local target = targetPlayer or Admin.TargetPlayer
     if not target or target == LocalPlayer then
-        ConsolePrint("❌ No target selected for headsit!")
+        ConsolePrint("No target selected for headsit!")
         return
     end
     
     local targetChar = target.Character
     if not targetChar then
-        ConsolePrint("❌ Target has no character!")
+        ConsolePrint("Target has no character!")
         return
     end
     
     local localChar = LocalPlayer.Character
     if not localChar then
-        ConsolePrint("❌ You have no character!")
+        ConsolePrint("You have no character!")
         return
     end
     
     local head = targetChar:FindFirstChild("Head")
     if not head then
-        ConsolePrint("❌ Target has no head!")
+        ConsolePrint("Target has no head!")
         return
     end
     
@@ -1921,7 +2059,7 @@ local function HeadSit(targetPlayer)
         end)
     end
     
-    ConsolePrint("👑 Sitting on " .. target.Name .. "'s head!")
+    ConsolePrint("Sitting on " .. target.Name .. "'s head!")
 end
 
 -- ==================== INVISIBLE ====================
@@ -1939,7 +2077,7 @@ local function StartInvisible()
         end
     end
     
-    ConsolePrint("👻 Invisible: ON")
+    ConsolePrint("Invisible: ON")
 end
 
 local function StopInvisible()
@@ -1956,12 +2094,12 @@ local function StopInvisible()
     end
     originalTransparency = {}
     
-    ConsolePrint("👻 Invisible: OFF")
+    ConsolePrint("Invisible: OFF")
 end
 
 -- ==================== BUILDING TOOLS ====================
 local function GiveBuildingTools()
-    local tools = {
+    local toolIds = {
         "rbxassetid://169209103",
         "rbxassetid://169191869",
         "rbxassetid://169211324",
@@ -1977,7 +2115,7 @@ local function GiveBuildingTools()
     local backpack = LocalPlayer:FindFirstChild("Backpack")
     if not backpack then return end
     
-    for _, toolId in pairs(tools) do
+    for _, toolId in pairs(toolIds) do
         local tool = Instance.new("Tool")
         tool.Name = "Building Tool"
         tool.RequiresHandle = false
@@ -1985,18 +2123,13 @@ local function GiveBuildingTools()
         tool.Parent = backpack
     end
     
-    ConsolePrint("🔨 Building tools added to backpack!")
+    ConsolePrint("Building tools added to backpack!")
 end
 
 -- ==================== DEX EXPLORER ====================
 local function OpenDEX()
     loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
-    ConsolePrint("📁 DEX Explorer opened!")
-end
-
--- ==================== SERVER INFO ====================
-local function GetServerInfo()
-    ShowServerInfoPopup()
+    ConsolePrint("DEX Explorer opened!")
 end
 
 -- ==================== SERVER HOP ====================
@@ -2021,9 +2154,9 @@ local function ServerHop()
     if #servers > 0 then
         local randomServer = servers[math.random(1, #servers)]
         TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer, LocalPlayer)
-        ConsolePrint("🔄 Teleporting to new server...")
+        ConsolePrint("Teleporting to new server...")
     else
-        ConsolePrint("❌ No servers found to hop to!")
+        ConsolePrint("No servers found to hop to!")
     end
 end
 
@@ -2049,7 +2182,9 @@ local function ProcessCommand(msg)
                     humanoid.WalkSpeed = speed
                 end
             end
-            ConsolePrint("🏃 Speed set to " .. speed)
+            ConsolePrint("Speed set to " .. speed)
+        else
+            ConsolePrint("Usage: ;speed [number]")
         end
         
     elseif cmd == ";jumppower" or cmd == ";jp" then
@@ -2063,7 +2198,9 @@ local function ProcessCommand(msg)
                     humanoid.JumpPower = jump
                 end
             end
-            ConsolePrint("🦘 Jump Power set to " .. jump)
+            ConsolePrint("Jump Power set to " .. jump)
+        else
+            ConsolePrint("Usage: ;jumppower [number]")
         end
         
     elseif cmd == ";fly" then
@@ -2078,6 +2215,9 @@ local function ProcessCommand(msg)
     elseif cmd == ";invis" or cmd == ";invisible" then
         if invisible then StopInvisible() else StartInvisible() end
         
+    elseif cmd == ";godmode" or cmd == ";god" then
+        if godMode then StopGodMode() else StartGodMode() end
+        
     elseif cmd == ";target" then
         local targetName = args[2]
         if targetName then
@@ -2085,16 +2225,25 @@ local function ProcessCommand(msg)
             if target and target ~= LocalPlayer then
                 Admin.TargetPlayer = target
                 Admin.TargetPlayerName = target.Name
-                ConsolePrint("🎯 Target set to: " .. target.Name)
+                ConsolePrint("Target set to: " .. target.Name)
             else
-                ConsolePrint("❌ Player not found: " .. targetName)
+                ConsolePrint("Player not found: " .. targetName)
             end
         else
-            ConsolePrint("🎯 Current target: " .. (Admin.TargetPlayerName or "None"))
+            ConsolePrint("Current target: " .. (Admin.TargetPlayerName or "None"))
         end
         
     elseif cmd == ";spin" then
-        if spinning then StopSpin() else StartSpin() end
+        local speed = tonumber(args[2])
+        if spinning then 
+            StopSpin() 
+        else 
+            if speed then
+                StartSpin(speed)
+            else
+                StartSpin()
+            end
+        end
         
     elseif cmd == ";fling" then
         if flinging then StopFling() else StartFling() end
@@ -2106,7 +2255,7 @@ local function ProcessCommand(msg)
             if target then
                 KillPlayer(target)
             else
-                ConsolePrint("❌ Player not found: " .. targetName)
+                ConsolePrint("Player not found: " .. targetName)
             end
         else
             KillPlayer()
@@ -2119,10 +2268,10 @@ local function ProcessCommand(msg)
             if target then
                 TeleportToPlayer(target)
             else
-                ConsolePrint("❌ Player not found: " .. targetName)
+                ConsolePrint("Player not found: " .. targetName)
             end
         else
-            ConsolePrint("❌ Usage: ;tp [username]")
+            ConsolePrint("Usage: ;tp [username]")
         end
         
     elseif cmd == ";headsit" then
@@ -2132,7 +2281,7 @@ local function ProcessCommand(msg)
             if target then
                 HeadSit(target)
             else
-                ConsolePrint("❌ Player not found: " .. targetName)
+                ConsolePrint("Player not found: " .. targetName)
             end
         else
             HeadSit()
@@ -2145,7 +2294,7 @@ local function ProcessCommand(msg)
         OpenDEX()
         
     elseif cmd == ";serverinfo" or cmd == ";info" then
-        GetServerInfo()
+        ShowServerInfoPopup()
         
     elseif cmd == ";serverhop" or cmd == ";shop" then
         ServerHop()
@@ -2154,28 +2303,36 @@ local function ProcessCommand(msg)
         ShowCommandList()
         
     elseif cmd == ";creator" then
-        CreatePopup("Creator Info", "Universal Admin Panel\nCreated for Roblox", UDim2.new(0, 300, 0, 150))
+        CreatePopup("Creator Info", "Universal Admin Panel\nCreated for Roblox\n\nVersion 2.0", UDim2.new(0, 300, 0, 150))
     end
 end
 
--- Chat command listener
+-- ==================== CHAT COMMANDS ====================
 local function SetupChatCommands()
-    LocalPlayer.Chatted:Connect(function(msg)
-        ProcessCommand(msg)
+    -- Use a pcall to safely handle chat
+    pcall(function()
+        LocalPlayer.Chatted:Connect(function(msg)
+            ProcessCommand(msg)
+        end)
     end)
     
-    local textChatService = game:GetService("TextChatService")
-    if textChatService then
-        local textChannels = textChatService:WaitForChild("TextChannels")
-        local rbxSystem = textChannels:FindFirstChild("RBXSystem")
-        if rbxSystem then
-            rbxSystem.MessageReceived:Connect(function(message)
-                if message.TextSource == LocalPlayer then
-                    ProcessCommand(message.Text)
+    -- Try TextChatService
+    pcall(function()
+        local textChatService = game:GetService("TextChatService")
+        if textChatService then
+            local textChannels = textChatService:WaitForChild("TextChannels", 3)
+            if textChannels then
+                local rbxSystem = textChannels:FindFirstChild("RBXSystem")
+                if rbxSystem then
+                    rbxSystem.MessageReceived:Connect(function(message)
+                        if message.TextSource == LocalPlayer then
+                            ProcessCommand(message.Text)
+                        end
+                    end)
                 end
-            end)
+            end
         end
-    end
+    end)
 end
 
 -- ==================== MOVEMENT UPDATE ====================
@@ -2191,23 +2348,18 @@ local function UpdateMovement()
 end
 
 -- ==================== RENDER LOOP ====================
-local function OnRenderStep()
+RunService.RenderStepped:Connect(function()
     UpdateMovement()
-end
+end)
 
 -- ==================== CHARACTER ADDED ====================
-local function OnCharacterAdded(character)
+LocalPlayer.CharacterAdded:Connect(function(character)
     UpdateMovement()
     
     task.wait(0.5)
     
     if noclip then
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                noclipParts[part] = part.CanCollide
-                part.CanCollide = false
-            end
-        end
+        UpdateNoclip()
     end
     
     if invisible then
@@ -2219,16 +2371,21 @@ local function OnCharacterAdded(character)
         end
     end
     
+    if godMode then
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.BreakJointsOnDeath = false
+            humanoid.MaxHealth = math.huge
+            humanoid.Health = math.huge
+        end
+    end
+    
     if flying then
         StopFly()
         task.wait(0.1)
         StartFly()
     end
-end
-
--- ==================== SETUP CONNECTIONS ====================
-LocalPlayer.CharacterAdded:Connect(OnCharacterAdded)
-RunService.RenderStepped:Connect(OnRenderStep)
+end)
 
 -- ==================== UI CREATION ====================
 local Window = Library:CreateWindow("Universal Admin")
@@ -2238,12 +2395,12 @@ local PlayerTab = Window:CreateTab("Player", "user")
 local PlayerSubTab = PlayerTab:CreateSubTab("Movement", "zap")
 local PlayerSection = PlayerSubTab:CreateSection("Movement Settings")
 
-local speedSlider = PlayerSection:CreateSlider("Walk Speed", 16, 250, Admin.Speed, function(val)
+PlayerSection:CreateSlider("Walk Speed", 16, 250, Admin.Speed, function(val)
     Admin.Speed = val
     UpdateMovement()
 end)
 
-local jumpSlider = PlayerSection:CreateSlider("Jump Power", 50, 250, Admin.JumpPower, function(val)
+PlayerSection:CreateSlider("Jump Power", 50, 250, Admin.JumpPower, function(val)
     Admin.JumpPower = val
     UpdateMovement()
 end)
@@ -2264,6 +2421,10 @@ PlayerSection:CreateToggle("Invisible", Admin.Invisible, function(val)
     if val then StartInvisible() else StopInvisible() end
 end)
 
+PlayerSection:CreateToggle("God Mode", Admin.GodMode, function(val)
+    if val then StartGodMode() else StopGodMode() end
+end)
+
 -- Target Tab
 local TargetTab = Window:CreateTab("Target", "target")
 local TargetSubTab = TargetTab:CreateSubTab("Actions", "swords")
@@ -2274,29 +2435,48 @@ local targetDropdown = TargetSection:CreateDropdown("Select Target", currentPlay
     if val ~= "None" then
         Admin.TargetPlayer = GetPlayer(val)
         Admin.TargetPlayerName = val
-        ConsolePrint("🎯 Target set to: " .. val)
+        ConsolePrint("Target set to: " .. val)
     else
         Admin.TargetPlayer = nil
         Admin.TargetPlayerName = "None"
-        ConsolePrint("🎯 Target cleared")
+        ConsolePrint("Target cleared")
     end
 end)
 
 TargetSection:CreateButton("Refresh Player List", function()
     local newList = UpdateTargetList()
     targetDropdown:Refresh(newList)
-    if Admin.TargetPlayerName ~= "None" and table.find(newList, Admin.TargetPlayerName) then
-        targetDropdown:Set(Admin.TargetPlayerName)
+    if Admin.TargetPlayerName ~= "None" then
+        local found = false
+        for _, name in pairs(newList) do
+            if name == Admin.TargetPlayerName then
+                found = true
+                break
+            end
+        end
+        if found then
+            targetDropdown:Set(Admin.TargetPlayerName)
+        else
+            targetDropdown:Set("None")
+            Admin.TargetPlayer = nil
+            Admin.TargetPlayerName = "None"
+        end
     else
         targetDropdown:Set("None")
-        Admin.TargetPlayer = nil
-        Admin.TargetPlayerName = "None"
     end
-    ConsolePrint("🔄 Player list refreshed!")
+    ConsolePrint("Player list refreshed!")
 end)
 
 TargetSection:CreateButton("Spin Target", function()
     if spinning then StopSpin() else StartSpin() end
+end)
+
+TargetSection:CreateSlider("Spin Speed", 100, 1000, Admin.SpinSpeed, function(val)
+    Admin.SpinSpeed = val
+    if spinning then
+        StopSpin()
+        StartSpin()
+    end
 end)
 
 TargetSection:CreateButton("Fling Target", function()
@@ -2329,7 +2509,7 @@ UtilitySection:CreateButton("Open DEX Explorer (;dex)", function()
 end)
 
 UtilitySection:CreateButton("Show Server Info (;serverinfo)", function()
-    GetServerInfo()
+    ShowServerInfoPopup()
 end)
 
 UtilitySection:CreateButton("Server Hop (;serverhop)", function()
@@ -2345,6 +2525,10 @@ CommandsSection:CreateButton("Show All Commands (;cmds)", function()
     ShowCommandList()
 end)
 
+CommandsSection:CreateButton("Execute Custom Command", function()
+    ShowCommandPrompt(";")
+end)
+
 -- Info Tab
 local InfoTab = Window:CreateTab("Info", "info")
 local InfoSubTab = InfoTab:CreateSubTab("About", "user")
@@ -2354,19 +2538,26 @@ InfoSection:CreateLabel("══════════════════�
 InfoSection:CreateLabel("     UNIVERSAL ADMIN PANEL")
 InfoSection:CreateLabel("═══════════════════════════════")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("📌 Version: 2.0")
-InfoSection:CreateLabel("🎮 Works in ALL Roblox games!")
-InfoSection:CreateLabel("⚡ Similar to Infinite Yield")
+InfoSection:CreateLabel("Version: 2.0")
+InfoSection:CreateLabel("Works in ALL Roblox games!")
+InfoSection:CreateLabel("Similar to Infinite Yield")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("📖 HOW TO USE:")
-InfoSection:CreateLabel("• Press Right Shift to toggle UI")
-InfoSection:CreateLabel("• Type ;cmds in chat for commands")
-InfoSection:CreateLabel("• Type ;help for command list")
+InfoSection:CreateLabel("HOW TO USE:")
+InfoSection:CreateLabel("Press Right Shift to toggle UI")
+InfoSection:CreateLabel("Type ;cmds in chat for commands")
+InfoSection:CreateLabel("Type ;help for command list")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("💡 TIPS:")
-InfoSection:CreateLabel("• Use ;target to select a player")
-InfoSection:CreateLabel("• Commands work in chat")
-InfoSection:CreateLabel("• Drag the UI by the top bar")
+InfoSection:CreateLabel("NEW FEATURES:")
+InfoSection:CreateLabel("God Mode - You can't die!")
+InfoSection:CreateLabel("Adjustable Spin Speed")
+InfoSection:CreateLabel("Command Prompt UI")
+InfoSection:CreateLabel("Searchable command list")
+InfoSection:CreateLabel("")
+InfoSection:CreateLabel("TIPS:")
+InfoSection:CreateLabel("Use ;target to select a player")
+InfoSection:CreateLabel("Use ;spin [speed] to set spin speed")
+InfoSection:CreateLabel("Commands work in chat")
+InfoSection:CreateLabel("Drag the UI by the top bar")
 InfoSection:CreateLabel("")
 InfoSection:CreateLabel("═══════════════════════════════")
 InfoSection:CreateLabel("     Created for Roblox")
@@ -2376,11 +2567,14 @@ InfoSection:CreateLabel("══════════════════�
 SetupChatCommands()
 
 if LocalPlayer.Character then
-    OnCharacterAdded(LocalPlayer.Character)
+    task.wait(0.5)
+    UpdateMovement()
 end
 
 ConsolePrint("========================================")
 ConsolePrint("   UNIVERSAL ADMIN PANEL LOADED!")
 ConsolePrint("   Press Right Shift to open UI")
 ConsolePrint("   Type ;cmds in chat for commands")
+ConsolePrint("   Type ;godmode for God Mode")
+ConsolePrint("   Type ;spin [speed] for adjustable spin")
 ConsolePrint("========================================")
