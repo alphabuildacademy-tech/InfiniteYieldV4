@@ -1,4 +1,4 @@
--- main.lua (Kurby's Admin Panel) 
+-- main.lua (Kurby's Admin Panel) - FULLY FIXED VERSION
 -- Made By - Z..../Zoro
 
 -- ==================== UI LIBRARY ====================
@@ -17,21 +17,19 @@ local TeleportService = game:GetService("TeleportService")
 local MarketplaceService = game:GetService("MarketplaceService")
 local StatsService = game:GetService("Stats")
 
--- Clipboard function 
+-- Clipboard function (works with most executors)
 local function CopyToClipboard(text)
     if setclipboard then
         setclipboard(text)
+        return true
     elseif toclipboard then
         toclipboard(text)
+        return true
     elseif syn and syn.write_clipboard then
         syn.write_clipboard(text)
-    elseif game:GetService("CoreGui").RobloxGui:FindFirstChild("Clipboard") then
-        game:GetService("CoreGui").RobloxGui.Clipboard:SetText(text)
-    else
-        warn("Clipboard not supported")
-        return false
+        return true
     end
-    return true
+    return false
 end
 
 local Library = { Toggled = true, Accent = Color3.fromRGB(160, 60, 255), _blockDrag = false }
@@ -136,8 +134,8 @@ function Library:CreateWindow(title)
     local Main = Create("Frame", {
         Parent = ScreenGui,
         BackgroundColor3 = Color3.fromRGB(8, 8, 8),
-        Position = UDim2.new(0.5, -300, 0.5, -220),
-        Size = UDim2.new(0, 600, 0, 440)
+        Position = UDim2.new(0.5, -350, 0.5, -260),
+        Size = UDim2.new(0, 700, 0, 520)
     })
     Create("UICorner", { CornerRadius = UDim.new(0, 10), Parent = Main })
     Create("UIStroke", { Color = Color3.fromRGB(45, 45, 45), Parent = Main })
@@ -145,25 +143,25 @@ function Library:CreateWindow(title)
     local Sidebar = Create("Frame", {
         Parent = Main,
         BackgroundColor3 = Color3.fromRGB(13, 13, 13),
-        Size = UDim2.new(0, 50, 1, 0)
+        Size = UDim2.new(0, 60, 1, 0)
     })
     Create("UIStroke", { Color = Color3.fromRGB(35, 35, 35), ApplyStrokeMode = "Border", Parent = Sidebar })
 
     Create("TextLabel", {
         Parent = Sidebar,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 36),
+        Size = UDim2.new(1, 0, 0, 40),
         Font = "GothamBold",
         Text = "K",
         TextColor3 = Library.Accent,
-        TextSize = 22
+        TextSize = 24
     })
 
     local List = Create("Frame", {
         Parent = Sidebar,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 36),
-        Size = UDim2.new(1, 0, 1, -36)
+        Position = UDim2.new(0, 0, 0, 40),
+        Size = UDim2.new(1, 0, 1, -40)
     })
     Create("UIListLayout", {
         Parent = List,
@@ -174,33 +172,33 @@ function Library:CreateWindow(title)
     local Container = Create("Frame", {
         Parent = Main,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 50, 0, 0),
-        Size = UDim2.new(1, -50, 1, 0)
+        Position = UDim2.new(0, 60, 0, 0),
+        Size = UDim2.new(1, -60, 1, 0)
     })
 
     local DragBar = Create("Frame", {
         Name = "DragBar",
         Parent = Main,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 48),
+        Size = UDim2.new(1, 0, 0, 50),
         ZIndex = 0
     })
     local DragSide = Create("Frame", {
         Name = "DragSide",
         Parent = Sidebar,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 36),
+        Size = UDim2.new(1, 0, 0, 40),
         ZIndex = 10
     })
     local wasDragging = Library:MakeDraggable(DragBar, Main)
     Library:MakeDraggable(DragSide, Main)
 
-    local Header = Create("Frame", { Parent = Container, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 48) })
+    local Header = Create("Frame", { Parent = Container, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 50) })
     Create("TextLabel", {
         Parent = Header,
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 16, 0, 0),
-        Size = UDim2.new(0, 180, 1, 0),
+        Size = UDim2.new(0, 200, 1, 0),
         Font = "GothamBold",
         Text = title or "Kurby Hub",
         TextColor3 = Color3.new(1, 1, 1),
@@ -214,11 +212,11 @@ function Library:CreateWindow(title)
         AnchorPoint = Vector2.new(1, 0.5),
         BackgroundColor3 = Color3.fromRGB(200, 55, 55),
         Position = UDim2.new(1, -12, 0.5, 0),
-        Size = UDim2.new(0, 22, 0, 22),
+        Size = UDim2.new(0, 26, 0, 26),
         Font = "GothamBold",
         Text = "X",
         TextColor3 = Color3.new(1, 1, 1),
-        TextSize = 12,
+        TextSize = 14,
         AutoButtonColor = false,
         ZIndex = 10
     })
@@ -234,8 +232,8 @@ function Library:CreateWindow(title)
     local SubTabBar = Create("Frame", {
         Parent = Header,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 200, 0, 0),
-        Size = UDim2.new(1, -240, 1, 0)
+        Position = UDim2.new(0, 220, 0, 0),
+        Size = UDim2.new(1, -260, 1, 0)
     })
     Create("UIListLayout", {
         Parent = SubTabBar,
@@ -254,8 +252,8 @@ function Library:CreateWindow(title)
     local Folder = Create("Frame", {
         Parent = Container,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 0, 0, 48),
-        Size = UDim2.new(1, 0, 1, -48)
+        Position = UDim2.new(0, 0, 0, 50),
+        Size = UDim2.new(1, 0, 1, -50)
     })
 
     local isMobile = UIS.TouchEnabled and not UIS.KeyboardEnabled
@@ -310,7 +308,7 @@ function Library:CreateWindow(title)
             Name = name .. "Tab",
             Parent = List,
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 50)
+            Size = UDim2.new(1, 0, 0, 55)
         })
 
         local Highlight = Create("Frame", {
@@ -320,15 +318,15 @@ function Library:CreateWindow(title)
             BorderSizePixel = 0,
             Size = UDim2.new(1, 0, 1, 0)
         })
-        Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = Highlight })
+        Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = Highlight })
 
         local Ind = Create("Frame", {
             Name = "Indicator",
             Parent = Btn,
             BackgroundColor3 = Library.Accent,
             BorderSizePixel = 0,
-            Position = UDim2.new(0, 0, 0.5, -12),
-            Size = UDim2.new(0, 3, 0, 24),
+            Position = UDim2.new(0, 0, 0.5, -14),
+            Size = UDim2.new(0, 3, 0, 28),
             BackgroundTransparency = 1,
             ZIndex = 5
         })
@@ -339,8 +337,8 @@ function Library:CreateWindow(title)
             Name = "Icon",
             Parent = Btn,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0.5, -12, 0.5, -12),
-            Size = UDim2.new(0, 24, 0, 24),
+            Position = UDim2.new(0.5, -14, 0.5, -14),
+            Size = UDim2.new(0, 28, 0, 28),
             Image = "rbxassetid://" .. iconData[1],
             ImageRectSize = Vector2.new(iconData[2], iconData[3]),
             ImageRectOffset = Vector2.new(iconData[4], iconData[5]),
@@ -410,8 +408,8 @@ function Library:CreateWindow(title)
                 Name = "Icon",
                 Parent = SBtn,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0.5, -8),
-                Size = UDim2.new(0, 16, 0, 16),
+                Position = UDim2.new(0, 0, 0.5, -10),
+                Size = UDim2.new(0, 20, 0, 20),
                 Image = "rbxassetid://" .. stIconData[1],
                 ImageRectSize = Vector2.new(stIconData[2], stIconData[3]),
                 ImageRectOffset = Vector2.new(stIconData[4], stIconData[5]),
@@ -422,7 +420,7 @@ function Library:CreateWindow(title)
                 Name = "Label",
                 Parent = SBtn,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 20, 0, 0),
+                Position = UDim2.new(0, 24, 0, 0),
                 Size = UDim2.new(0, 0, 1, 0),
                 AutomaticSize = "X",
                 Font = "Gotham",
@@ -444,7 +442,7 @@ function Library:CreateWindow(title)
                 BorderSizePixel = 0,
                 Size = UDim2.new(1, 0, 1, 0),
                 Visible = false,
-                ScrollBarThickness = 2,
+                ScrollBarThickness = 4,
                 ScrollBarImageColor3 = Library.Accent
             })
             Create("UIListLayout", {
@@ -492,13 +490,13 @@ function Library:CreateWindow(title)
                     BackgroundColor3 = Library.Accent,
                     BorderSizePixel = 0,
                     Position = UDim2.new(0, 0, 0, 6),
-                    Size = UDim2.new(0, 2, 0, 18)
+                    Size = UDim2.new(0, 3, 0, 18)
                 })
                 Create("TextLabel", {
                     Parent = Sec,
                     BackgroundTransparency = 1,
-                    Position = UDim2.new(0, 10, 0, 0),
-                    Size = UDim2.new(1, -10, 1, 0),
+                    Position = UDim2.new(0, 15, 0, 0),
+                    Size = UDim2.new(1, -15, 1, 0),
                     Font = "GothamBold",
                     Text = secName:upper(),
                     TextColor3 = Color3.fromRGB(190, 190, 190),
@@ -510,7 +508,7 @@ function Library:CreateWindow(title)
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 0)
                 })
-                local L = Create("UIListLayout", { Parent = Content, Padding = UDim.new(0, 6) })
+                local L = Create("UIListLayout", { Parent = Content, Padding = UDim.new(0, 8) })
                 L:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
                     Content.Size = UDim2.new(1, 0, 0, L.AbsoluteContentSize.Y)
                     SPage.CanvasSize = UDim2.new(0, 0, 0, SPage.UIListLayout.AbsoluteContentSize.Y + 40)
@@ -538,14 +536,14 @@ function Library:CreateWindow(title)
                     local F = Create("Frame", {
                         Parent = Content,
                         BackgroundColor3 = Color3.fromRGB(13, 13, 13),
-                        Size = UDim2.new(1, 0, 0, 42)
+                        Size = UDim2.new(1, 0, 0, 45)
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = F })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = F })
                     Create("TextLabel", {
                         Parent = F,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 12, 0, 0),
-                        Size = UDim2.new(1, -64, 1, 0),
+                        Position = UDim2.new(0, 15, 0, 0),
+                        Size = UDim2.new(1, -75, 1, 0),
                         Font = "Gotham",
                         Text = n,
                         TextColor3 = Color3.fromRGB(225, 225, 225),
@@ -556,21 +554,21 @@ function Library:CreateWindow(title)
                         Parent = F,
                         AnchorPoint = Vector2.new(1, 0.5),
                         BackgroundColor3 = Color3.fromRGB(35, 35, 35),
-                        Position = UDim2.new(1, -12, 0.5, 0),
-                        Size = UDim2.new(0, 36, 0, 18)
+                        Position = UDim2.new(1, -15, 0.5, 0),
+                        Size = UDim2.new(0, 40, 0, 20)
                     })
                     Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = O })
                     local I = Create("Frame", {
                         Parent = O,
                         BackgroundColor3 = Color3.new(1, 1, 1),
-                        Position = UDim2.new(0, 2, 0.5, -7),
-                        Size = UDim2.new(0, 14, 0, 14)
+                        Position = UDim2.new(0, 3, 0.5, -8),
+                        Size = UDim2.new(0, 16, 0, 16)
                     })
                     Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = I })
                     
                     local function u()
                         Tween(O, 0.2, { BackgroundColor3 = toggleValue and Library.Accent or Color3.fromRGB(35, 35, 35) })
-                        Tween(I, 0.2, { Position = toggleValue and UDim2.new(1, -16, 0.5, -7) or UDim2.new(0, 2, 0.5, -7) })
+                        Tween(I, 0.2, { Position = toggleValue and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8) })
                         if cb then
                             cb(toggleValue)
                         end
@@ -600,11 +598,11 @@ function Library:CreateWindow(title)
                     local B = Create("TextButton", {
                         Parent = Content,
                         BackgroundColor3 = Color3.fromRGB(13, 13, 13),
-                        Size = UDim2.new(1, 0, 0, 42),
+                        Size = UDim2.new(1, 0, 0, 45),
                         Text = "",
                         AutoButtonColor = false
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = B })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = B })
                     Create("TextLabel", {
                         Parent = B,
                         BackgroundTransparency = 1,
@@ -630,14 +628,14 @@ function Library:CreateWindow(title)
                     local F = Create("Frame", {
                         Parent = Content,
                         BackgroundColor3 = Color3.fromRGB(13, 13, 13),
-                        Size = UDim2.new(1, 0, 0, 50)
+                        Size = UDim2.new(1, 0, 0, 65)
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = F })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = F })
                     Create("TextLabel", {
                         Parent = F,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 12, 0, 0),
-                        Size = UDim2.new(1, -70, 0, 24),
+                        Position = UDim2.new(0, 15, 0, 0),
+                        Size = UDim2.new(1, -85, 0, 28),
                         Font = "Gotham",
                         Text = n,
                         TextColor3 = Color3.fromRGB(225, 225, 225),
@@ -647,19 +645,19 @@ function Library:CreateWindow(title)
                     local Val = Create("TextLabel", {
                         Parent = F,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(1, -60, 0, 0),
-                        Size = UDim2.new(0, 48, 0, 24),
+                        Position = UDim2.new(1, -70, 0, 0),
+                        Size = UDim2.new(0, 55, 0, 28),
                         Font = "GothamBold",
                         Text = tostring(currentValue),
                         TextColor3 = Library.Accent,
-                        TextSize = 13,
+                        TextSize = 14,
                         TextXAlignment = "Right"
                     })
                     local Bar = Create("Frame", {
                         Parent = F,
                         BackgroundColor3 = Color3.fromRGB(35, 35, 35),
-                        Position = UDim2.new(0, 12, 0, 32),
-                        Size = UDim2.new(1, -24, 0, 6)
+                        Position = UDim2.new(0, 15, 0, 42),
+                        Size = UDim2.new(1, -30, 0, 6)
                     })
                     Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Bar })
                     local Fill = Create("Frame", {
@@ -673,7 +671,7 @@ function Library:CreateWindow(title)
                         AnchorPoint = Vector2.new(1, 0.5),
                         BackgroundColor3 = Color3.new(1, 1, 1),
                         Position = UDim2.new(1, 0, 0.5, 0),
-                        Size = UDim2.new(0, 12, 0, 12)
+                        Size = UDim2.new(0, 14, 0, 14)
                     })
                     Create("UICorner", { CornerRadius = UDim.new(1, 0), Parent = Knob })
                     
@@ -729,15 +727,15 @@ function Library:CreateWindow(title)
                     local F = Create("Frame", {
                         Parent = Content,
                         BackgroundColor3 = Color3.fromRGB(13, 13, 13),
-                        Size = UDim2.new(1, 0, 0, 42)
+                        Size = UDim2.new(1, 0, 0, 50)
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = F })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = F })
                     
                     local Lbl = Create("TextLabel", {
                         Parent = F,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 12, 0, 0),
-                        Size = UDim2.new(0, 100, 1, 0),
+                        Position = UDim2.new(0, 15, 0, 0),
+                        Size = UDim2.new(0, 140, 1, 0),
                         Font = "Gotham",
                         Text = n,
                         TextColor3 = Color3.fromRGB(225, 225, 225),
@@ -748,8 +746,8 @@ function Library:CreateWindow(title)
                     local Box = Create("TextBox", {
                         Parent = F,
                         BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-                        Position = UDim2.new(0, 120, 0, 6),
-                        Size = UDim2.new(1, -130, 0, 30),
+                        Position = UDim2.new(0, 160, 0, 10),
+                        Size = UDim2.new(1, -175, 0, 30),
                         Font = "Gotham",
                         Text = currentValue,
                         PlaceholderText = "Enter player name...",
@@ -758,7 +756,7 @@ function Library:CreateWindow(title)
                         TextSize = 13,
                         ClearTextOnFocus = false
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Box })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = Box })
                     
                     Box.FocusLost:Connect(function(enterPressed)
                         if enterPressed and Box.Text ~= "" then
@@ -788,23 +786,23 @@ function Library:CreateWindow(title)
                     local F = Create("Frame", {
                         Parent = Content,
                         BackgroundColor3 = Color3.fromRGB(13, 13, 13),
-                        Size = UDim2.new(1, 0, 0, 42),
+                        Size = UDim2.new(1, 0, 0, 45),
                         ClipsDescendants = true
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = F })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = F })
 
                     local MainBtn = Create("TextButton", {
                         Parent = F,
                         BackgroundTransparency = 1,
-                        Size = UDim2.new(1, 0, 0, 42),
+                        Size = UDim2.new(1, 0, 0, 45),
                         Text = "",
                         AutoButtonColor = false
                     })
                     local Lbl = Create("TextLabel", {
                         Parent = F,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 12, 0, 0),
-                        Size = UDim2.new(1, -44, 0, 42),
+                        Position = UDim2.new(0, 15, 0, 0),
+                        Size = UDim2.new(1, -60, 0, 45),
                         Font = "Gotham",
                         Text = n,
                         TextColor3 = Color3.fromRGB(225, 225, 225),
@@ -814,8 +812,8 @@ function Library:CreateWindow(title)
                     local SelLbl = Create("TextLabel", {
                         Parent = F,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 12, 0, 0),
-                        Size = UDim2.new(1, -64, 0, 42),
+                        Position = UDim2.new(0, 15, 0, 0),
+                        Size = UDim2.new(1, -80, 0, 45),
                         Font = "Gotham",
                         Text = tostring(selected),
                         TextColor3 = Library.Accent,
@@ -826,10 +824,10 @@ function Library:CreateWindow(title)
                         Parent = F,
                         BackgroundTransparency = 1,
                         AnchorPoint = Vector2.new(1, 0.5),
-                        Position = UDim2.new(1, -12, 0, 21),
+                        Position = UDim2.new(1, -15, 0, 22.5),
                         Size = UDim2.new(0, 20, 0, 20),
                         Font = "GothamBold",
-                        Text = "v",
+                        Text = "▼",
                         TextColor3 = Color3.fromRGB(140, 140, 140),
                         TextSize = 12
                     })
@@ -837,7 +835,7 @@ function Library:CreateWindow(title)
                     local ItemList = Create("Frame", {
                         Parent = F,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 6, 0, 42),
+                        Position = UDim2.new(0, 6, 0, 45),
                         Size = UDim2.new(1, -12, 0, 0)
                     })
                     local LList = Create("UIListLayout", { Parent = ItemList, Padding = UDim.new(0, 3) })
@@ -845,7 +843,7 @@ function Library:CreateWindow(title)
                     local opened = false
 
                     local function uDropdown()
-                        local h = opened and (42 + LList.AbsoluteContentSize.Y + 8) or 42
+                        local h = opened and (45 + LList.AbsoluteContentSize.Y + 8) or 45
                         Tween(F, 0.25, { Size = UDim2.new(1, 0, 0, h) })
                         Tween(Arrow, 0.25, { Rotation = opened and 180 or 0 })
                     end
@@ -861,7 +859,7 @@ function Library:CreateWindow(title)
                             local Btn = Create("TextButton", {
                                 Parent = ItemList,
                                 BackgroundColor3 = Color3.fromRGB(20, 20, 20),
-                                Size = UDim2.new(1, 0, 0, 30),
+                                Size = UDim2.new(1, 0, 0, 32),
                                 Font = "Gotham",
                                 Text = tostring(item),
                                 TextColor3 = (selected == item) and Library.Accent or Color3.fromRGB(200, 200, 200),
@@ -918,14 +916,14 @@ function Library:CreateWindow(title)
                     local F = Create("Frame", {
                         Parent = Content,
                         BackgroundColor3 = Color3.fromRGB(13, 13, 13),
-                        Size = UDim2.new(1, 0, 0, 42)
+                        Size = UDim2.new(1, 0, 0, 45)
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = F })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = F })
                     Create("TextLabel", {
                         Parent = F,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 12, 0, 0),
-                        Size = UDim2.new(1, -100, 1, 0),
+                        Position = UDim2.new(0, 15, 0, 0),
+                        Size = UDim2.new(1, -110, 1, 0),
                         Font = "Gotham",
                         Text = n,
                         TextColor3 = Color3.fromRGB(225, 225, 225),
@@ -936,15 +934,15 @@ function Library:CreateWindow(title)
                         Parent = F,
                         AnchorPoint = Vector2.new(1, 0.5),
                         BackgroundColor3 = Color3.fromRGB(22, 22, 22),
-                        Position = UDim2.new(1, -10, 0.5, 0),
-                        Size = UDim2.new(0, 70, 0, 26),
+                        Position = UDim2.new(1, -15, 0.5, 0),
+                        Size = UDim2.new(0, 80, 0, 30),
                         Font = "GothamBold",
                         Text = currentKey.Name,
                         TextColor3 = Library.Accent,
                         TextSize = 12,
                         AutoButtonColor = false
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = KeyBtn })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = KeyBtn })
                     
                     local waiting = false
                     
@@ -986,16 +984,16 @@ function Library:CreateWindow(title)
                     local container = Create("Frame", {
                         Parent = Content,
                         BackgroundColor3 = Color3.fromRGB(13, 13, 13),
-                        Size = UDim2.new(1, 0, 0, 65),
+                        Size = UDim2.new(1, 0, 0, 75),
                         ClipsDescendants = false
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = container })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 8), Parent = container })
 
                     local label = Create("TextLabel", {
                         Parent = container,
                         BackgroundTransparency = 1,
-                        Position = UDim2.new(0, 10, 0, 5),
-                        Size = UDim2.new(1, -20, 0, 20),
+                        Position = UDim2.new(0, 15, 0, 5),
+                        Size = UDim2.new(1, -30, 0, 25),
                         Font = "Gotham",
                         Text = n,
                         TextColor3 = Color3.fromRGB(225, 225, 225),
@@ -1006,64 +1004,64 @@ function Library:CreateWindow(title)
                     local colorDisplay = Create("Frame", {
                         Parent = container,
                         BackgroundColor3 = defaultColor,
-                        Position = UDim2.new(0, 10, 0, 28),
-                        Size = UDim2.new(0, 80, 0, 25)
+                        Position = UDim2.new(0, 15, 0, 35),
+                        Size = UDim2.new(0, 90, 0, 30)
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = colorDisplay })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = colorDisplay })
                     Create("UIStroke", { Color = Color3.fromRGB(255, 255, 255), Thickness = 1, Parent = colorDisplay })
 
                     local rgbButton = Create("TextButton", {
                         Parent = container,
                         BackgroundColor3 = Color3.fromRGB(30, 30, 30),
-                        Position = UDim2.new(0, 100, 0, 28),
-                        Size = UDim2.new(0, 60, 0, 25),
+                        Position = UDim2.new(0, 115, 0, 35),
+                        Size = UDim2.new(0, 60, 0, 30),
                         Font = "GothamBold",
                         Text = "RGB",
                         TextColor3 = Color3.new(1, 1, 1),
                         TextSize = 12,
                         AutoButtonColor = false
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = rgbButton })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = rgbButton })
 
                     local redBtn = Create("TextButton", {
                         Parent = container,
                         BackgroundColor3 = Color3.fromRGB(255, 50, 50),
-                        Position = UDim2.new(0, 170, 0, 28),
-                        Size = UDim2.new(0, 25, 0, 25),
+                        Position = UDim2.new(0, 185, 0, 35),
+                        Size = UDim2.new(0, 28, 0, 28),
                         Text = "",
                         AutoButtonColor = false
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = redBtn })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = redBtn })
 
                     local greenBtn = Create("TextButton", {
                         Parent = container,
                         BackgroundColor3 = Color3.fromRGB(50, 255, 50),
-                        Position = UDim2.new(0, 200, 0, 28),
-                        Size = UDim2.new(0, 25, 0, 25),
+                        Position = UDim2.new(0, 218, 0, 35),
+                        Size = UDim2.new(0, 28, 0, 28),
                         Text = "",
                         AutoButtonColor = false
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = greenBtn })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = greenBtn })
 
                     local blueBtn = Create("TextButton", {
                         Parent = container,
                         BackgroundColor3 = Color3.fromRGB(50, 50, 255),
-                        Position = UDim2.new(0, 230, 0, 28),
-                        Size = UDim2.new(0, 25, 0, 25),
+                        Position = UDim2.new(0, 251, 0, 35),
+                        Size = UDim2.new(0, 28, 0, 28),
                         Text = "",
                         AutoButtonColor = false
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = blueBtn })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = blueBtn })
 
                     local whiteBtn = Create("TextButton", {
                         Parent = container,
                         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-                        Position = UDim2.new(0, 260, 0, 28),
-                        Size = UDim2.new(0, 25, 0, 25),
+                        Position = UDim2.new(0, 284, 0, 35),
+                        Size = UDim2.new(0, 28, 0, 28),
                         Text = "",
                         AutoButtonColor = false
                     })
-                    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = whiteBtn })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = whiteBtn })
 
                     local function updateColor(color)
                         currentColor = color
@@ -1223,23 +1221,558 @@ local function ConsolePrint(msg)
     print(msg)
 end
 
--- ==================== CLIPBOARD FUNCTIONS ====================
+-- ==================== COMMAND FUNCTIONS (DEFINED FIRST) ====================
 
-local function CopyToClipboard(text)
-    if setclipboard then
-        setclipboard(text)
-        return true
-    elseif toclipboard then
-        toclipboard(text)
-        return true
-    elseif syn and syn.write_clipboard then
-        syn.write_clipboard(text)
-        return true
+-- Get all players
+local function GetAllPlayers()
+    local players = {}
+    for _, player in pairs(PlayersService:GetPlayers()) do
+        table.insert(players, player)
     end
-    return false
+    return players
 end
 
--- ==================== PLAYER LIST POPUP WITH COPY FEATURE ====================
+local function GetPlayer(input)
+    if type(input) == "string" then
+        for _, player in pairs(PlayersService:GetPlayers()) do
+            if string.lower(player.Name) == string.lower(input) or string.lower(player.DisplayName) == string.lower(input) then
+                return player
+            end
+        end
+        for _, player in pairs(PlayersService:GetPlayers()) do
+            if string.find(string.lower(player.Name), string.lower(input)) or string.find(string.lower(player.DisplayName), string.lower(input)) then
+                return player
+            end
+        end
+    end
+    return nil
+end
+
+-- Apply speed and jump power
+local function ApplyMovementSettings()
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            pcall(function()
+                humanoid.WalkSpeed = Admin.Speed
+                humanoid.JumpPower = Admin.JumpPower
+            end)
+        end
+    end
+end
+
+-- Kill Player
+local function KillPlayer(targetPlayer)
+    local target = targetPlayer or Admin.TargetPlayer
+    if not target or target == LocalPlayer then
+        ConsolePrint("❌ No target selected to kill!")
+        return
+    end
+    
+    local char = target.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Health = 0
+            ConsolePrint("💀 Killed " .. target.Name .. "!")
+        else
+            ConsolePrint("❌ Could not kill " .. target.Name .. "!")
+        end
+    else
+        ConsolePrint("❌ " .. target.Name .. " has no character!")
+    end
+end
+
+-- Teleport to Player
+local function TeleportToPlayer(targetPlayer)
+    local target = targetPlayer
+    if not target or target == LocalPlayer then
+        ConsolePrint("❌ No target selected to teleport to!")
+        return
+    end
+    
+    local targetChar = target.Character
+    if not targetChar then
+        ConsolePrint("❌ Target has no character!")
+        return
+    end
+    
+    local localChar = LocalPlayer.Character
+    if not localChar then
+        ConsolePrint("❌ You have no character!")
+        return
+    end
+    
+    local targetPos = targetChar:GetPivot().Position
+    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
+    
+    if localHRP then
+        localHRP.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+        ConsolePrint("✨ Teleported to " .. target.Name .. "!")
+    else
+        ConsolePrint("❌ Could not teleport!")
+    end
+end
+
+-- Head Sit
+local function HeadSit(targetPlayer)
+    local target = targetPlayer or Admin.TargetPlayer
+    if not target or target == LocalPlayer then
+        ConsolePrint("❌ No target selected for headsit!")
+        return
+    end
+    
+    local targetChar = target.Character
+    if not targetChar then
+        ConsolePrint("❌ Target has no character!")
+        return
+    end
+    
+    local localChar = LocalPlayer.Character
+    if not localChar then
+        ConsolePrint("❌ You have no character!")
+        return
+    end
+    
+    local head = targetChar:FindFirstChild("Head")
+    if not head then
+        ConsolePrint("❌ Target has no head!")
+        return
+    end
+    
+    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
+    if localHRP then
+        localHRP.CFrame = CFrame.new(head.Position + Vector3.new(0, 2, 0))
+        
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = localHRP
+        weld.Part1 = head
+        weld.Parent = localHRP
+        
+        task.delay(0.5, function()
+            if weld then weld:Destroy() end
+        end)
+    end
+    
+    ConsolePrint("👑 Sitting on " .. target.Name .. "'s head!")
+end
+
+-- God Mode
+local function StartGodMode()
+    if godMode then return end
+    godMode = true
+    
+    godModeConnection = RunService.RenderStepped:Connect(function()
+        if godMode and LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid then
+                humanoid.BreakJointsOnDeath = false
+                humanoid.MaxHealth = math.huge
+                humanoid.Health = math.huge
+            end
+        end
+    end)
+    
+    ConsolePrint("🛡️ God Mode: ON")
+end
+
+local function StopGodMode()
+    if not godMode then return end
+    godMode = false
+    
+    if godModeConnection then
+        godModeConnection:Disconnect()
+        godModeConnection = nil
+    end
+    
+    if LocalPlayer.Character then
+        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.BreakJointsOnDeath = true
+            humanoid.MaxHealth = 100
+            if humanoid.Health > 100 then
+                humanoid.Health = 100
+            end
+        end
+    end
+    
+    ConsolePrint("🛡️ God Mode: OFF")
+end
+
+-- Fly System
+local function StartFly()
+    if flying then return end
+    flying = true
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
+    end
+    
+    flyBodyVelocity = Instance.new("BodyVelocity")
+    flyBodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
+    flyBodyVelocity.Parent = hrp
+    
+    flyConnection = RunService.RenderStepped:Connect(function()
+        if flying and LocalPlayer.Character and hrp and hrp.Parent then
+            local moveDirection = Vector3.new(0, 0, 0)
+            
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
+                moveDirection = moveDirection + Vector3.new(0, 0, -1)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
+                moveDirection = moveDirection + Vector3.new(0, 0, 1)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
+                moveDirection = moveDirection + Vector3.new(-1, 0, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
+                moveDirection = moveDirection + Vector3.new(1, 0, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
+                moveDirection = moveDirection + Vector3.new(0, 1, 0)
+            end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
+                moveDirection = moveDirection + Vector3.new(0, -1, 0)
+            end
+            
+            if moveDirection.Magnitude > 0 then
+                moveDirection = moveDirection.Unit
+            end
+            
+            local speed = 75
+            flyBodyVelocity.Velocity = (Camera.CFrame.RightVector * moveDirection.X + 
+                                         Camera.CFrame.UpVector * moveDirection.Y + 
+                                         Camera.CFrame.LookVector * moveDirection.Z) * speed
+        end
+    end)
+    
+    ConsolePrint("✈️ Fly: ON")
+end
+
+local function StopFly()
+    if not flying then return end
+    flying = false
+    
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
+    
+    if flyBodyVelocity then
+        flyBodyVelocity:Destroy()
+        flyBodyVelocity = nil
+    end
+    
+    if flyConnection then
+        flyConnection:Disconnect()
+        flyConnection = nil
+    end
+    
+    ConsolePrint("✈️ Fly: OFF")
+end
+
+-- Noclip System
+local function UpdateNoclip()
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CanCollide = not noclip
+        end
+    end
+end
+
+local function StartNoclip()
+    if noclip then return end
+    noclip = true
+    
+    UpdateNoclip()
+    
+    noclipConnection = RunService.RenderStepped:Connect(function()
+        if noclip then
+            UpdateNoclip()
+        end
+    end)
+    
+    ConsolePrint("💨 Noclip: ON")
+end
+
+local function StopNoclip()
+    if not noclip then return end
+    noclip = false
+    
+    if noclipConnection then
+        noclipConnection:Disconnect()
+        noclipConnection = nil
+    end
+    
+    UpdateNoclip()
+    
+    ConsolePrint("💨 Noclip: OFF")
+end
+
+-- Infinite Jump
+local function StartInfiniteJump()
+    if infiniteJump then return end
+    infiniteJump = true
+    
+    jumpConnection = UserInputService.JumpRequest:Connect(function()
+        if infiniteJump and LocalPlayer.Character then
+            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+            if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Jumping then
+                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
+            end
+        end
+    end)
+    
+    ConsolePrint("🦘 Infinite Jump: ON")
+end
+
+local function StopInfiniteJump()
+    infiniteJump = false
+    
+    if jumpConnection then
+        jumpConnection:Disconnect()
+        jumpConnection = nil
+    end
+    
+    ConsolePrint("🦘 Infinite Jump: OFF")
+end
+
+-- Invisible
+local function StartInvisible()
+    if invisible then return end
+    invisible = true
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            originalTransparency[part] = part.Transparency
+            part.Transparency = 1
+        end
+    end
+    
+    ConsolePrint("👻 Invisible: ON")
+end
+
+local function StopInvisible()
+    if not invisible then return end
+    invisible = false
+    
+    local char = LocalPlayer.Character
+    if char then
+        for part, original in pairs(originalTransparency) do
+            if part.Parent == char then
+                part.Transparency = original
+            end
+        end
+    end
+    originalTransparency = {}
+    
+    ConsolePrint("👻 Invisible: OFF")
+end
+
+-- Spin System
+local function StartSpin(speed)
+    if spinning then return end
+    
+    local target = Admin.TargetPlayer
+    if not target or target == LocalPlayer then
+        ConsolePrint("❌ No target selected for spin!")
+        return
+    end
+    
+    local char = target.Character
+    if not char then
+        ConsolePrint("❌ Target has no character!")
+        return
+    end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        ConsolePrint("❌ Target has no HumanoidRootPart!")
+        return
+    end
+    
+    spinning = true
+    local spinSpeedValue = speed or Admin.SpinSpeed
+    
+    spinConnection = RunService.RenderStepped:Connect(function(dt)
+        if spinning and target.Character and hrp and hrp.Parent then
+            local newAngle = spinSpeedValue * dt
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(newAngle), 0)
+        end
+    end)
+    
+    ConsolePrint("🌀 Spinning " .. target.Name .. " at speed " .. tostring(spinSpeedValue) .. "!")
+end
+
+local function StopSpin()
+    if not spinning then return end
+    spinning = false
+    
+    if spinConnection then
+        spinConnection:Disconnect()
+        spinConnection = nil
+    end
+    
+    ConsolePrint("🌀 Spin stopped!")
+end
+
+-- Fling System
+local function StartFling()
+    if flinging then return end
+    
+    local target = Admin.TargetPlayer
+    if not target or target == LocalPlayer then
+        ConsolePrint("❌ No target selected for fling!")
+        return
+    end
+    
+    local char = target.Character
+    if not char then
+        ConsolePrint("❌ Target has no character!")
+        return
+    end
+    
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then
+        ConsolePrint("❌ Target has no HumanoidRootPart!")
+        return
+    end
+    
+    flinging = true
+    
+    flingConnection = RunService.RenderStepped:Connect(function()
+        if flinging and target.Character and hrp and hrp.Parent then
+            local randomDir = Vector3.new(math.random(-150, 150), math.random(50, 200), math.random(-150, 150))
+            hrp.AssemblyLinearVelocity = randomDir
+        end
+    end)
+    
+    ConsolePrint("💥 Flinging " .. target.Name .. "!")
+end
+
+local function StopFling()
+    if not flinging then return end
+    flinging = false
+    
+    if flingConnection then
+        flingConnection:Disconnect()
+        flingConnection = nil
+    end
+    
+    ConsolePrint("💥 Fling stopped!")
+end
+
+-- Building Tools
+local function GiveBuildingTools()
+    local toolIds = {
+        "rbxassetid://169209103",
+        "rbxassetid://169191869",
+        "rbxassetid://169211324",
+        "rbxassetid://169217863",
+        "rbxassetid://169223733",
+        "rbxassetid://169224140",
+        "rbxassetid://169224309",
+        "rbxassetid://169224443",
+        "rbxassetid://169224599",
+        "rbxassetid://169224715",
+    }
+    
+    local backpack = LocalPlayer:FindFirstChild("Backpack")
+    if not backpack then return end
+    
+    for _, toolId in pairs(toolIds) do
+        local tool = Instance.new("Tool")
+        tool.Name = "Building Tool"
+        tool.RequiresHandle = false
+        tool.ToolTip = "Building Tool"
+        tool.Parent = backpack
+    end
+    
+    ConsolePrint("🔨 Building tools added to backpack!")
+end
+
+-- DEX Explorer
+local function OpenDEX()
+    loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
+    ConsolePrint("📁 DEX Explorer opened!")
+end
+
+-- Server Hop
+local function ServerHop()
+    local servers = {}
+    
+    local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?limit=100"
+    
+    local success, response = pcall(function()
+        return game:HttpGet(url)
+    end)
+    
+    if success and response then
+        local data = HttpService:JSONDecode(response)
+        for _, server in pairs(data.data) do
+            if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                table.insert(servers, server.id)
+            end
+        end
+    end
+    
+    if #servers > 0 then
+        local randomServer = servers[math.random(1, #servers)]
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer, LocalPlayer)
+        ConsolePrint("🔄 Teleporting to new server...")
+    else
+        ConsolePrint("❌ No servers found to hop to!")
+    end
+end
+
+-- Server Info
+local function ShowServerInfo()
+    local ping = "N/A"
+    local success, result = pcall(function()
+        local network = StatsService:FindFirstChild("Network")
+        if network then
+            local serverStats = network:FindFirstChild("ServerStatsItem")
+            if serverStats then
+                local dataPing = serverStats:FindFirstChild("Data Ping")
+                if dataPing then
+                    return dataPing:GetValueString()
+                end
+            end
+        end
+        return nil
+    end)
+    if success and result then
+        ping = tostring(result)
+    end
+    
+    local infoText = "=== SERVER INFO ===\n" ..
+        "Place ID: " .. tostring(game.PlaceId) .. "\n" ..
+        "Job ID: " .. tostring(game.JobId) .. "\n" ..
+        "Players: " .. tostring(#PlayersService:GetPlayers()) .. "/" .. tostring(game.Players.MaxPlayers) .. "\n" ..
+        "Ping: " .. ping .. " ms\n" ..
+        "Server Time: " .. os.date("%H:%M:%S") .. "\n" ..
+        "=================="
+    ConsolePrint(infoText)
+end
+
+-- ==================== PLAYER LIST POPUP ====================
 
 local function CreatePlayerListPopup()
     if playerListPopup then
@@ -1253,15 +1786,15 @@ local function CreatePlayerListPopup()
     screenGui.ResetOnSpawn = false
     
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 350, 0, 450)
-    frame.Position = UDim2.new(1, -360, 0.5, -225)
+    frame.Size = UDim2.new(0, 450, 0, 500)
+    frame.Position = UDim2.new(1, -460, 0.5, -250)
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BackgroundTransparency = 0
     frame.BorderSizePixel = 0
     frame.Parent = screenGui
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = frame
     
     local stroke = Instance.new("UIStroke")
@@ -1270,37 +1803,37 @@ local function CreatePlayerListPopup()
     
     -- Title bar
     local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
     titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     titleBar.Parent = frame
     
     local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.CornerRadius = UDim.new(0, 10)
     titleCorner.Parent = titleBar
     
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -40, 1, 0)
-    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.Size = UDim2.new(1, -50, 1, 0)
+    titleLabel.Position = UDim2.new(0, 15, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "Players Online"
+    titleLabel.Text = "📋 Players Online"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextSize = 14
+    titleLabel.TextSize = 15
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = titleBar
     
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0, 2.5)
+    closeBtn.Size = UDim2.new(0, 32, 0, 32)
+    closeBtn.Position = UDim2.new(1, -40, 0, 4)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200, 55, 55)
-    closeBtn.Text = "X"
+    closeBtn.Text = "✕"
     closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.TextSize = 14
+    closeBtn.TextSize = 16
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.Parent = titleBar
     
     local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.CornerRadius = UDim.new(0, 6)
     closeCorner.Parent = closeBtn
     
     closeBtn.MouseButton1Click:Connect(function()
@@ -1310,29 +1843,29 @@ local function CreatePlayerListPopup()
     
     -- Player count label
     local countLabel = Instance.new("TextLabel")
-    countLabel.Size = UDim2.new(1, -20, 0, 25)
-    countLabel.Position = UDim2.new(0, 10, 0, 40)
+    countLabel.Size = UDim2.new(1, -20, 0, 30)
+    countLabel.Position = UDim2.new(0, 10, 0, 48)
     countLabel.BackgroundTransparency = 1
-    countLabel.Text = "Players: 0"
+    countLabel.Text = "👥 Players: 0"
     countLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
-    countLabel.TextSize = 12
+    countLabel.TextSize = 13
     countLabel.Font = Enum.Font.Gotham
     countLabel.TextXAlignment = Enum.TextXAlignment.Left
     countLabel.Parent = frame
     
     -- Player list frame
     local listFrame = Instance.new("ScrollingFrame")
-    listFrame.Size = UDim2.new(1, -10, 1, -80)
-    listFrame.Position = UDim2.new(0, 5, 0, 70)
+    listFrame.Size = UDim2.new(1, -20, 1, -95)
+    listFrame.Position = UDim2.new(0, 10, 0, 85)
     listFrame.BackgroundTransparency = 1
     listFrame.BorderSizePixel = 0
     listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    listFrame.ScrollBarThickness = 4
+    listFrame.ScrollBarThickness = 6
     listFrame.ScrollBarImageColor3 = Color3.fromRGB(160, 60, 255)
     listFrame.Parent = frame
     
     local playerList = Instance.new("UIListLayout")
-    playerList.Padding = UDim.new(0, 5)
+    playerList.Padding = UDim.new(0, 8)
     playerList.Parent = listFrame
     
     local function UpdatePlayerList()
@@ -1349,108 +1882,130 @@ local function CreatePlayerListPopup()
         
         table.sort(players, function(a, b) return a.Name < b.Name end)
         
-        countLabel.Text = "Players: " .. #players
+        countLabel.Text = "👥 Players: " .. #players
         
         for _, player in pairs(players) do
             local playerFrame = Instance.new("Frame")
-            playerFrame.Size = UDim2.new(1, 0, 0, 50)
+            playerFrame.Size = UDim2.new(1, 0, 0, 55)
             playerFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
             playerFrame.Parent = listFrame
             
             local frameCorner = Instance.new("UICorner")
-            frameCorner.CornerRadius = UDim.new(0, 4)
+            frameCorner.CornerRadius = UDim.new(0, 8)
             frameCorner.Parent = playerFrame
             
-            -- Highlight if this is the current target
             if Admin.TargetPlayer and Admin.TargetPlayer.Name == player.Name then
                 playerFrame.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
             end
             
-            -- Username label
+            local avatarIcon = Instance.new("ImageLabel")
+            avatarIcon.Size = UDim2.new(0, 35, 0, 35)
+            avatarIcon.Position = UDim2.new(0, 10, 0.5, -17.5)
+            avatarIcon.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            avatarIcon.Image = "rbxasset://textures/ui/GuiImagePlaceholder.png"
+            avatarIcon.Parent = playerFrame
+            local avatarCorner = Instance.new("UICorner")
+            avatarCorner.CornerRadius = UDim.new(1, 0)
+            avatarCorner.Parent = avatarIcon
+            
             local nameLabel = Instance.new("TextLabel")
-            nameLabel.Size = UDim2.new(0.5, -10, 1, 0)
-            nameLabel.Position = UDim2.new(0, 10, 0, 0)
+            nameLabel.Size = UDim2.new(0, 150, 0, 22)
+            nameLabel.Position = UDim2.new(0, 55, 0, 8)
             nameLabel.BackgroundTransparency = 1
             nameLabel.Text = player.Name
             nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-            nameLabel.TextSize = 13
+            nameLabel.TextSize = 14
             nameLabel.Font = Enum.Font.GothamBold
             nameLabel.TextXAlignment = Enum.TextXAlignment.Left
             nameLabel.Parent = playerFrame
             
-            -- User ID label
             local idLabel = Instance.new("TextLabel")
-            idLabel.Size = UDim2.new(0.3, -10, 1, 0)
-            idLabel.Position = UDim2.new(0.5, 0, 0, 0)
+            idLabel.Size = UDim2.new(0, 150, 0, 18)
+            idLabel.Position = UDim2.new(0, 55, 0, 30)
             idLabel.BackgroundTransparency = 1
             idLabel.Text = "ID: " .. player.UserId
-            idLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+            idLabel.TextColor3 = Color3.fromRGB(140, 140, 140)
             idLabel.TextSize = 11
             idLabel.Font = Enum.Font.Gotham
             idLabel.TextXAlignment = Enum.TextXAlignment.Left
             idLabel.Parent = playerFrame
             
-            -- Copy Username button
             local copyNameBtn = Instance.new("TextButton")
-            copyNameBtn.Size = UDim2.new(0, 30, 0, 25)
-            copyNameBtn.Position = UDim2.new(0.8, 0, 0.5, -12.5)
-            copyNameBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            copyNameBtn.Text = "📋"
+            copyNameBtn.Size = UDim2.new(0, 70, 0, 28)
+            copyNameBtn.Position = UDim2.new(1, -225, 0.5, -14)
+            copyNameBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            copyNameBtn.Text = "📋 Name"
             copyNameBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            copyNameBtn.TextSize = 12
+            copyNameBtn.TextSize = 11
             copyNameBtn.Font = Enum.Font.GothamBold
             copyNameBtn.Parent = playerFrame
             
             local copyNameCorner = Instance.new("UICorner")
-            copyNameCorner.CornerRadius = UDim.new(0, 4)
+            copyNameCorner.CornerRadius = UDim.new(0, 6)
             copyNameCorner.Parent = copyNameBtn
             
             copyNameBtn.MouseButton1Click:Connect(function()
                 if CopyToClipboard(player.Name) then
-                    copyNameBtn.Text = "✓"
-                    task.wait(0.5)
-                    copyNameBtn.Text = "📋"
+                    copyNameBtn.Text = "✓ Copied!"
+                    copyNameBtn.BackgroundColor3 = Color3.fromRGB(60, 150, 60)
+                    task.wait(0.8)
+                    copyNameBtn.Text = "📋 Name"
+                    copyNameBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
                     ConsolePrint("Copied username: " .. player.Name)
                 end
             end)
             
-            -- Copy User ID button
+            copyNameBtn.MouseEnter:Connect(function()
+                copyNameBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            end)
+            copyNameBtn.MouseLeave:Connect(function()
+                copyNameBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            end)
+            
             local copyIdBtn = Instance.new("TextButton")
-            copyIdBtn.Size = UDim2.new(0, 30, 0, 25)
-            copyIdBtn.Position = UDim2.new(0.88, 0, 0.5, -12.5)
-            copyIdBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-            copyIdBtn.Text = "🆔"
+            copyIdBtn.Size = UDim2.new(0, 65, 0, 28)
+            copyIdBtn.Position = UDim2.new(1, -150, 0.5, -14)
+            copyIdBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            copyIdBtn.Text = "🆔 ID"
             copyIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            copyIdBtn.TextSize = 12
+            copyIdBtn.TextSize = 11
             copyIdBtn.Font = Enum.Font.GothamBold
             copyIdBtn.Parent = playerFrame
             
             local copyIdCorner = Instance.new("UICorner")
-            copyIdCorner.CornerRadius = UDim.new(0, 4)
+            copyIdCorner.CornerRadius = UDim.new(0, 6)
             copyIdCorner.Parent = copyIdBtn
             
             copyIdBtn.MouseButton1Click:Connect(function()
                 if CopyToClipboard(tostring(player.UserId)) then
-                    copyIdBtn.Text = "✓"
-                    task.wait(0.5)
-                    copyIdBtn.Text = "🆔"
+                    copyIdBtn.Text = "✓ Copied!"
+                    copyIdBtn.BackgroundColor3 = Color3.fromRGB(60, 150, 60)
+                    task.wait(0.8)
+                    copyIdBtn.Text = "🆔 ID"
+                    copyIdBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
                     ConsolePrint("Copied User ID: " .. player.UserId)
                 end
             end)
             
-            -- Set as target button
+            copyIdBtn.MouseEnter:Connect(function()
+                copyIdBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
+            end)
+            copyIdBtn.MouseLeave:Connect(function()
+                copyIdBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+            end)
+            
             local targetBtn = Instance.new("TextButton")
-            targetBtn.Size = UDim2.new(0, 40, 0, 25)
-            targetBtn.Position = UDim2.new(0.96, 0, 0.5, -12.5)
+            targetBtn.Size = UDim2.new(0, 65, 0, 32)
+            targetBtn.Position = UDim2.new(1, -75, 0.5, -16)
             targetBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
-            targetBtn.Text = "🎯"
+            targetBtn.Text = "🎯 Set"
             targetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            targetBtn.TextSize = 12
+            targetBtn.TextSize = 11
             targetBtn.Font = Enum.Font.GothamBold
             targetBtn.Parent = playerFrame
             
             local targetCorner = Instance.new("UICorner")
-            targetCorner.CornerRadius = UDim.new(0, 4)
+            targetCorner.CornerRadius = UDim.new(0, 6)
             targetCorner.Parent = targetBtn
             
             targetBtn.MouseButton1Click:Connect(function()
@@ -1460,19 +2015,25 @@ local function CreatePlayerListPopup()
                     if targetTextbox then
                         targetTextbox:SetText(player.Name)
                     end
-                    ConsolePrint("Target set to: " .. player.Name)
+                    ConsolePrint("🎯 Target set to: " .. player.Name)
                     UpdatePlayerList()
                 end
+            end)
+            
+            targetBtn.MouseEnter:Connect(function()
+                targetBtn.BackgroundColor3 = Color3.fromRGB(180, 80, 255)
+            end)
+            targetBtn.MouseLeave:Connect(function()
+                targetBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
             end)
         end
         
         task.wait()
-        listFrame.CanvasSize = UDim2.new(0, 0, 0, playerList.AbsoluteContentSize.Y + 10)
+        listFrame.CanvasSize = UDim2.new(0, 0, 0, playerList.AbsoluteContentSize.Y + 20)
     end
     
     UpdatePlayerList()
     
-    -- Auto-refresh every 2 seconds
     local refreshConnection
     refreshConnection = game:GetService("RunService").Stepped:Connect(function()
         if screenGui and screenGui.Parent then
@@ -1482,7 +2043,6 @@ local function CreatePlayerListPopup()
         end
     end)
     
-    -- Make draggable
     local dragging = false
     local dragStart, startPos
     
@@ -1511,7 +2071,7 @@ local function CreatePlayerListPopup()
     return screenGui
 end
 
--- ==================== COMMAND PROMPT WITH AUTO-COMPLETE ====================
+-- ==================== COMMAND PROMPT ====================
 
 local function ShowCommandPrompt(defaultCommand)
     local screenGui = Instance.new("ScreenGui")
@@ -1520,36 +2080,35 @@ local function ShowCommandPrompt(defaultCommand)
     screenGui.ResetOnSpawn = false
     
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 450, 0, 140)
-    frame.Position = UDim2.new(0.5, -225, 0.5, -70)
+    frame.Size = UDim2.new(0, 550, 0, 160)
+    frame.Position = UDim2.new(0.5, -275, 0.5, -80)
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BackgroundTransparency = 0
     frame.BorderSizePixel = 0
     frame.Parent = screenGui
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = frame
     
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Parent = frame
     
-    -- Title bar
     local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
     titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     titleBar.Parent = frame
     
     local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.CornerRadius = UDim.new(0, 10)
     titleCorner.Parent = titleBar
     
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -40, 1, 0)
-    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.Size = UDim2.new(1, -50, 1, 0)
+    titleLabel.Position = UDim2.new(0, 15, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "Execute Command"
+    titleLabel.Text = "⌨️ Execute Command (Tab to autocomplete)"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleLabel.TextSize = 14
     titleLabel.Font = Enum.Font.GothamBold
@@ -1557,81 +2116,66 @@ local function ShowCommandPrompt(defaultCommand)
     titleLabel.Parent = titleBar
     
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0, 2.5)
+    closeBtn.Size = UDim2.new(0, 32, 0, 32)
+    closeBtn.Position = UDim2.new(1, -40, 0, 4)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200, 55, 55)
-    closeBtn.Text = "X"
+    closeBtn.Text = "✕"
     closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.TextSize = 14
+    closeBtn.TextSize = 16
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.Parent = titleBar
     
     local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.CornerRadius = UDim.new(0, 6)
     closeCorner.Parent = closeBtn
     
     closeBtn.MouseButton1Click:Connect(function()
         screenGui:Destroy()
     end)
     
-    -- Input box
     local inputBox = Instance.new("TextBox")
-    inputBox.Size = UDim2.new(1, -20, 0, 35)
-    inputBox.Position = UDim2.new(0, 10, 0, 45)
+    inputBox.Size = UDim2.new(1, -20, 0, 40)
+    inputBox.Position = UDim2.new(0, 10, 0, 50)
     inputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     inputBox.Text = defaultCommand or ""
-    inputBox.PlaceholderText = "Type command... (Tab to autocomplete)"
+    inputBox.PlaceholderText = "Type command... (Press Tab for suggestions)"
     inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     inputBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
-    inputBox.TextSize = 13
+    inputBox.TextSize = 14
     inputBox.Font = Enum.Font.Gotham
     inputBox.ClearTextOnFocus = false
     inputBox.Parent = frame
     
     local inputCorner = Instance.new("UICorner")
-    inputCorner.CornerRadius = UDim.new(0, 4)
+    inputCorner.CornerRadius = UDim.new(0, 8)
     inputCorner.Parent = inputBox
     
-    -- Suggestions frame
     local suggestionsFrame = Instance.new("Frame")
     suggestionsFrame.Size = UDim2.new(1, -20, 0, 0)
-    suggestionsFrame.Position = UDim2.new(0, 10, 0, 85)
+    suggestionsFrame.Position = UDim2.new(0, 10, 0, 95)
     suggestionsFrame.BackgroundTransparency = 1
     suggestionsFrame.ClipsDescendants = true
     suggestionsFrame.Visible = false
     suggestionsFrame.Parent = frame
     
     local suggestionsList = Instance.new("UIListLayout")
-    suggestionsList.Padding = UDim.new(0, 2)
+    suggestionsList.Padding = UDim.new(0, 3)
     suggestionsList.Parent = suggestionsFrame
     
-    -- Execute button
     local execBtn = Instance.new("TextButton")
-    execBtn.Size = UDim2.new(0, 80, 0, 30)
-    execBtn.Position = UDim2.new(1, -90, 1, -40)
+    execBtn.Size = UDim2.new(0, 100, 0, 35)
+    execBtn.Position = UDim2.new(1, -115, 1, -45)
     execBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
-    execBtn.Text = "Execute"
+    execBtn.Text = "▶ Execute"
     execBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
     execBtn.TextSize = 13
     execBtn.Font = Enum.Font.GothamBold
     execBtn.Parent = frame
     
     local execCorner = Instance.new("UICorner")
-    execCorner.CornerRadius = UDim.new(0, 4)
+    execCorner.CornerRadius = UDim.new(0, 8)
     execCorner.Parent = execBtn
     
-    -- Get player names for auto-complete
-    local function GetPlayerNames()
-        local names = {}
-        for _, player in pairs(PlayersService:GetPlayers()) do
-            if player ~= LocalPlayer then
-                table.insert(names, player.Name)
-            end
-        end
-        return names
-    end
-    
-    -- Update suggestions based on input
     local function UpdateSuggestions()
         local text = inputBox.Text
         local parts = {}
@@ -1645,21 +2189,19 @@ local function ShowCommandPrompt(defaultCommand)
         local suggestions = {}
         
         if isCommandPart then
-            -- Suggest commands
             for _, cmd in pairs(commandList) do
                 if string.sub(string.lower(cmd), 1, string.len(lastPart)) == string.lower(lastPart) and lastPart ~= "" then
                     table.insert(suggestions, cmd)
-                elseif lastPart == "" and #suggestions < 10 then
+                elseif lastPart == "" and #suggestions < 15 then
                     table.insert(suggestions, cmd)
                 end
             end
         else
-            -- Suggest player names for commands that need a target
-            local targetCommands = {"target", "kill", "tp", "headsit", "spin", "fling"}
+            local targetCommands = {"target", "kill", "tp", "headsit"}
             local firstCmd = string.lower(parts[1] or "")
             
             for _, tc in pairs(targetCommands) do
-                if tc == firstCmd or (firstCmd == "target" and tc == "target") then
+                if tc == firstCmd then
                     for _, player in pairs(PlayersService:GetPlayers()) do
                         if player ~= LocalPlayer then
                             if string.sub(string.lower(player.Name), 1, string.len(lastPart)) == string.lower(lastPart) then
@@ -1672,7 +2214,6 @@ local function ShowCommandPrompt(defaultCommand)
             end
         end
         
-        -- Clear old suggestions
         for _, child in pairs(suggestionsFrame:GetChildren()) do
             if child:IsA("TextButton") then
                 child:Destroy()
@@ -1686,17 +2227,17 @@ local function ShowCommandPrompt(defaultCommand)
             
             for i, sug in pairs(suggestions) do
                 local sugBtn = Instance.new("TextButton")
-                sugBtn.Size = UDim2.new(1, 0, 0, 25)
+                sugBtn.Size = UDim2.new(1, 0, 0, 30)
                 sugBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
                 sugBtn.Text = sug
                 sugBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
-                sugBtn.TextSize = 12
+                sugBtn.TextSize = 13
                 sugBtn.Font = Enum.Font.Gotham
                 sugBtn.TextXAlignment = Enum.TextXAlignment.Left
                 sugBtn.Parent = suggestionsFrame
                 
                 local btnCorner = Instance.new("UICorner")
-                btnCorner.CornerRadius = UDim.new(0, 4)
+                btnCorner.CornerRadius = UDim.new(0, 6)
                 btnCorner.Parent = sugBtn
                 
                 sugBtn.MouseButton1Click:Connect(function()
@@ -1728,16 +2269,15 @@ local function ShowCommandPrompt(defaultCommand)
                 end)
             end
             
-            local totalHeight = #suggestions * 27
-            suggestionsFrame.Size = UDim2.new(1, -20, 0, math.min(totalHeight, 150))
-            frame.Size = UDim2.new(0, 450, 0, 140 + math.min(totalHeight, 150))
+            local totalHeight = #suggestions * 33
+            suggestionsFrame.Size = UDim2.new(1, -20, 0, math.min(totalHeight, 180))
+            frame.Size = UDim2.new(0, 550, 0, 160 + math.min(totalHeight, 180))
         else
             suggestionsFrame.Visible = false
-            frame.Size = UDim2.new(0, 450, 0, 140)
+            frame.Size = UDim2.new(0, 550, 0, 160)
         end
     end
     
-    -- Handle Tab key for autocomplete
     inputBox:GetPropertyChangedSignal("Text"):Connect(UpdateSuggestions)
     
     inputBox.InputBegan:Connect(function(input, gameProcessed)
@@ -1767,7 +2307,7 @@ local function ShowCommandPrompt(defaultCommand)
             end
             inputBox:CaptureFocus()
             UpdateSuggestions()
-        elseif input.KeyCode == Enum.KeyCode.Enter then
+        elseif input.KeyCode == Enum.KeyCode.Return then
             local cmd = inputBox.Text
             screenGui:Destroy()
             ProcessCommand(cmd)
@@ -1788,7 +2328,6 @@ local function ShowCommandPrompt(defaultCommand)
         end
     end)
     
-    -- Make draggable
     local dragging = false
     local dragStart, startPos
     
@@ -1853,67 +2392,65 @@ local function ShowCommandList()
     screenGui.ResetOnSpawn = false
     
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 550, 0, 500)
-    frame.Position = UDim2.new(0.5, -275, 0.5, -250)
+    frame.Size = UDim2.new(0, 650, 0, 550)
+    frame.Position = UDim2.new(0.5, -325, 0.5, -275)
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BackgroundTransparency = 0
     frame.BorderSizePixel = 0
     frame.Parent = screenGui
     
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
+    corner.CornerRadius = UDim.new(0, 10)
     corner.Parent = frame
     
     local stroke = Instance.new("UIStroke")
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Parent = frame
     
-    -- Title bar
     local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.Size = UDim2.new(1, 0, 0, 40)
     titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
     titleBar.Parent = frame
     
     local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.CornerRadius = UDim.new(0, 10)
     titleCorner.Parent = titleBar
     
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -40, 1, 0)
-    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.Size = UDim2.new(1, -50, 1, 0)
+    titleLabel.Position = UDim2.new(0, 15, 0, 0)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = "Command List"
+    titleLabel.Text = "📚 Command List"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextSize = 14
+    titleLabel.TextSize = 15
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.TextXAlignment = Enum.TextXAlignment.Left
     titleLabel.Parent = titleBar
     
     local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0, 2.5)
+    closeBtn.Size = UDim2.new(0, 32, 0, 32)
+    closeBtn.Position = UDim2.new(1, -40, 0, 4)
     closeBtn.BackgroundColor3 = Color3.fromRGB(200, 55, 55)
-    closeBtn.Text = "X"
+    closeBtn.Text = "✕"
     closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.TextSize = 14
+    closeBtn.TextSize = 16
     closeBtn.Font = Enum.Font.GothamBold
     closeBtn.Parent = titleBar
     
     local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.CornerRadius = UDim.new(0, 6)
     closeCorner.Parent = closeBtn
     
     closeBtn.MouseButton1Click:Connect(function()
         screenGui:Destroy()
     end)
     
-    -- Search bar
     local searchBox = Instance.new("TextBox")
-    searchBox.Size = UDim2.new(1, -20, 0, 35)
-    searchBox.Position = UDim2.new(0, 10, 0, 45)
+    searchBox.Size = UDim2.new(1, -20, 0, 40)
+    searchBox.Position = UDim2.new(0, 10, 0, 52)
     searchBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     searchBox.Text = ""
-    searchBox.PlaceholderText = "Search commands..."
+    searchBox.PlaceholderText = "🔍 Search commands..."
     searchBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     searchBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
     searchBox.TextSize = 13
@@ -1921,22 +2458,21 @@ local function ShowCommandList()
     searchBox.Parent = frame
     
     local searchCorner = Instance.new("UICorner")
-    searchCorner.CornerRadius = UDim.new(0, 4)
+    searchCorner.CornerRadius = UDim.new(0, 8)
     searchCorner.Parent = searchBox
     
-    -- Command list
     local listFrame = Instance.new("ScrollingFrame")
-    listFrame.Size = UDim2.new(1, -20, 1, -100)
-    listFrame.Position = UDim2.new(0, 10, 0, 90)
+    listFrame.Size = UDim2.new(1, -20, 1, -110)
+    listFrame.Position = UDim2.new(0, 10, 0, 105)
     listFrame.BackgroundTransparency = 1
     listFrame.BorderSizePixel = 0
     listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    listFrame.ScrollBarThickness = 4
+    listFrame.ScrollBarThickness = 6
     listFrame.ScrollBarImageColor3 = Color3.fromRGB(160, 60, 255)
     listFrame.Parent = frame
     
     local cmdList = Instance.new("UIListLayout")
-    cmdList.Padding = UDim.new(0, 5)
+    cmdList.Padding = UDim.new(0, 8)
     cmdList.Parent = listFrame
     
     local function populateList(searchText)
@@ -1951,59 +2487,66 @@ local function ShowCommandList()
         for _, cmd in pairs(commandsList) do
             if searchText == "" or string.find(string.lower(cmd.cmd), searchText) or string.find(string.lower(cmd.desc), searchText) then
                 local cmdFrame = Instance.new("Frame")
-                cmdFrame.Size = UDim2.new(1, 0, 0, 40)
+                cmdFrame.Size = UDim2.new(1, 0, 0, 50)
                 cmdFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
                 cmdFrame.Parent = listFrame
                 
                 local cmdCorner = Instance.new("UICorner")
-                cmdCorner.CornerRadius = UDim.new(0, 4)
+                cmdCorner.CornerRadius = UDim.new(0, 8)
                 cmdCorner.Parent = cmdFrame
                 
                 local cmdLabel = Instance.new("TextLabel")
-                cmdLabel.Size = UDim2.new(0.4, -10, 1, 0)
-                cmdLabel.Position = UDim2.new(0, 10, 0, 0)
+                cmdLabel.Size = UDim2.new(0.35, -10, 1, 0)
+                cmdLabel.Position = UDim2.new(0, 15, 0, 0)
                 cmdLabel.BackgroundTransparency = 1
                 cmdLabel.Text = cmd.cmd
                 cmdLabel.TextColor3 = Color3.fromRGB(160, 60, 255)
-                cmdLabel.TextSize = 13
+                cmdLabel.TextSize = 14
                 cmdLabel.Font = Enum.Font.GothamBold
                 cmdLabel.TextXAlignment = Enum.TextXAlignment.Left
                 cmdLabel.Parent = cmdFrame
                 
                 local descLabel = Instance.new("TextLabel")
                 descLabel.Size = UDim2.new(0.45, -10, 1, 0)
-                descLabel.Position = UDim2.new(0.4, 0, 0, 0)
+                descLabel.Position = UDim2.new(0.35, 5, 0, 0)
                 descLabel.BackgroundTransparency = 1
                 descLabel.Text = cmd.desc
                 descLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
-                descLabel.TextSize = 12
+                descLabel.TextSize = 13
                 descLabel.Font = Enum.Font.Gotham
                 descLabel.TextXAlignment = Enum.TextXAlignment.Left
                 descLabel.Parent = cmdFrame
                 
                 local execBtn = Instance.new("TextButton")
-                execBtn.Size = UDim2.new(0.12, 0, 0.7, 0)
-                execBtn.Position = UDim2.new(0.88, -5, 0.15, 0)
-                execBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-                execBtn.Text = "Run"
+                execBtn.Size = UDim2.new(0, 80, 0, 32)
+                execBtn.Position = UDim2.new(1, -90, 0.5, -16)
+                execBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+                execBtn.Text = "▶ Run"
                 execBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-                execBtn.TextSize = 11
+                execBtn.TextSize = 12
                 execBtn.Font = Enum.Font.GothamBold
                 execBtn.Parent = cmdFrame
                 
                 local execCorner = Instance.new("UICorner")
-                execCorner.CornerRadius = UDim.new(0, 3)
+                execCorner.CornerRadius = UDim.new(0, 6)
                 execCorner.Parent = execBtn
                 
                 execBtn.MouseButton1Click:Connect(function()
                     screenGui:Destroy()
                     ShowCommandPrompt(cmd.cmd)
                 end)
+                
+                execBtn.MouseEnter:Connect(function()
+                    execBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
+                end)
+                execBtn.MouseLeave:Connect(function()
+                    execBtn.BackgroundColor3 = Color3.fromRGB(45, 45, 45)
+                end)
             end
         end
         
         task.wait()
-        listFrame.CanvasSize = UDim2.new(0, 0, 0, cmdList.AbsoluteContentSize.Y + 10)
+        listFrame.CanvasSize = UDim2.new(0, 0, 0, cmdList.AbsoluteContentSize.Y + 20)
     end
     
     searchBox:GetPropertyChangedSignal("Text"):Connect(function()
@@ -2012,7 +2555,6 @@ local function ShowCommandList()
     
     populateList("")
     
-    -- Make draggable
     local dragging = false
     local dragStart, startPos
     
@@ -2040,534 +2582,12 @@ local function ShowCommandList()
     return screenGui
 end
 
--- ==================== COMMAND SYSTEM ====================
-
--- Get all players
-local function GetAllPlayers()
-    local players = {}
-    for _, player in pairs(PlayersService:GetPlayers()) do
-        table.insert(players, player)
-    end
-    return players
-end
-
-local function GetPlayer(input)
-    if type(input) == "string" then
-        for _, player in pairs(PlayersService:GetPlayers()) do
-            if string.lower(player.Name) == string.lower(input) or string.lower(player.DisplayName) == string.lower(input) then
-                return player
-            end
-        end
-        for _, player in pairs(PlayersService:GetPlayers()) do
-            if string.find(string.lower(player.Name), string.lower(input)) or string.find(string.lower(player.DisplayName), string.lower(input)) then
-                return player
-            end
-        end
-    end
-    return nil
-end
-
--- Apply speed and jump power
-local function ApplyMovementSettings()
-    local char = LocalPlayer.Character
-    if char then
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            pcall(function()
-                humanoid.WalkSpeed = Admin.Speed
-                humanoid.JumpPower = Admin.JumpPower
-            end)
-        end
-    end
-end
-
--- Kill Player
-local function KillPlayer(targetPlayer)
-    local target = targetPlayer or Admin.TargetPlayer
-    if not target or target == LocalPlayer then
-        ConsolePrint("No target selected to kill!")
-        return
-    end
-    
-    local char = target.Character
-    if char then
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.Health = 0
-            ConsolePrint("Killed " .. target.Name .. "!")
-        else
-            ConsolePrint("Could not kill " .. target.Name .. "!")
-        end
-    else
-        ConsolePrint(target.Name .. " has no character!")
-    end
-end
-
--- Teleport to Player
-local function TeleportToPlayer(targetPlayer)
-    local target = targetPlayer
-    if not target or target == LocalPlayer then
-        ConsolePrint("No target selected to teleport to!")
-        return
-    end
-    
-    local targetChar = target.Character
-    if not targetChar then
-        ConsolePrint("Target has no character!")
-        return
-    end
-    
-    local localChar = LocalPlayer.Character
-    if not localChar then
-        ConsolePrint("You have no character!")
-        return
-    end
-    
-    local targetPos = targetChar:GetPivot().Position
-    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
-    
-    if localHRP then
-        localHRP.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
-        ConsolePrint("Teleported to " .. target.Name .. "!")
-    else
-        ConsolePrint("Could not teleport!")
-    end
-end
-
--- Head Sit
-local function HeadSit(targetPlayer)
-    local target = targetPlayer or Admin.TargetPlayer
-    if not target or target == LocalPlayer then
-        ConsolePrint("No target selected for headsit!")
-        return
-    end
-    
-    local targetChar = target.Character
-    if not targetChar then
-        ConsolePrint("Target has no character!")
-        return
-    end
-    
-    local localChar = LocalPlayer.Character
-    if not localChar then
-        ConsolePrint("You have no character!")
-        return
-    end
-    
-    local head = targetChar:FindFirstChild("Head")
-    if not head then
-        ConsolePrint("Target has no head!")
-        return
-    end
-    
-    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
-    if localHRP then
-        localHRP.CFrame = CFrame.new(head.Position + Vector3.new(0, 2, 0))
-        
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = localHRP
-        weld.Part1 = head
-        weld.Parent = localHRP
-        
-        task.delay(0.5, function()
-            if weld then weld:Destroy() end
-        end)
-    end
-    
-    ConsolePrint("Sitting on " .. target.Name .. "'s head!")
-end
-
--- God Mode
-local function StartGodMode()
-    if godMode then return end
-    godMode = true
-    
-    godModeConnection = RunService.RenderStepped:Connect(function()
-        if godMode and LocalPlayer.Character then
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid then
-                humanoid.BreakJointsOnDeath = false
-                humanoid.MaxHealth = math.huge
-                humanoid.Health = math.huge
-            end
-        end
-    end)
-    
-    ConsolePrint("God Mode: ON")
-end
-
-local function StopGodMode()
-    if not godMode then return end
-    godMode = false
-    
-    if godModeConnection then
-        godModeConnection:Disconnect()
-        godModeConnection = nil
-    end
-    
-    if LocalPlayer.Character then
-        local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.BreakJointsOnDeath = true
-            humanoid.MaxHealth = 100
-            if humanoid.Health > 100 then
-                humanoid.Health = 100
-            end
-        end
-    end
-    
-    ConsolePrint("God Mode: OFF")
-end
-
--- Fly System
-local function StartFly()
-    if flying then return end
-    flying = true
-    
-    local char = LocalPlayer.Character
-    if not char then return end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local humanoid = char:FindFirstChildOfClass("Humanoid")
-    if humanoid then
-        humanoid.PlatformStand = true
-    end
-    
-    flyBodyVelocity = Instance.new("BodyVelocity")
-    flyBodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
-    flyBodyVelocity.Parent = hrp
-    
-    flyConnection = RunService.RenderStepped:Connect(function()
-        if flying and LocalPlayer.Character and hrp and hrp.Parent then
-            local moveDirection = Vector3.new(0, 0, 0)
-            
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                moveDirection = moveDirection + Vector3.new(0, 0, -1)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                moveDirection = moveDirection + Vector3.new(0, 0, 1)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                moveDirection = moveDirection + Vector3.new(-1, 0, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                moveDirection = moveDirection + Vector3.new(1, 0, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                moveDirection = moveDirection + Vector3.new(0, 1, 0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then
-                moveDirection = moveDirection + Vector3.new(0, -1, 0)
-            end
-            
-            if moveDirection.Magnitude > 0 then
-                moveDirection = moveDirection.Unit
-            end
-            
-            local speed = 75
-            flyBodyVelocity.Velocity = (Camera.CFrame.RightVector * moveDirection.X + 
-                                         Camera.CFrame.UpVector * moveDirection.Y + 
-                                         Camera.CFrame.LookVector * moveDirection.Z) * speed
-        end
-    end)
-    
-    ConsolePrint("Fly: ON")
-end
-
-local function StopFly()
-    if not flying then return end
-    flying = false
-    
-    local char = LocalPlayer.Character
-    if char then
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.PlatformStand = false
-        end
-    end
-    
-    if flyBodyVelocity then
-        flyBodyVelocity:Destroy()
-        flyBodyVelocity = nil
-    end
-    
-    if flyConnection then
-        flyConnection:Disconnect()
-        flyConnection = nil
-    end
-    
-    ConsolePrint("Fly: OFF")
-end
-
--- Noclip System
-local function UpdateNoclip()
-    local char = LocalPlayer.Character
-    if not char then return end
-    
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CanCollide = not noclip
-        end
-    end
-end
-
-local function StartNoclip()
-    if noclip then return end
-    noclip = true
-    
-    UpdateNoclip()
-    
-    noclipConnection = RunService.RenderStepped:Connect(function()
-        if noclip then
-            UpdateNoclip()
-        end
-    end)
-    
-    ConsolePrint("Noclip: ON")
-end
-
-local function StopNoclip()
-    if not noclip then return end
-    noclip = false
-    
-    if noclipConnection then
-        noclipConnection:Disconnect()
-        noclipConnection = nil
-    end
-    
-    UpdateNoclip()
-    
-    ConsolePrint("Noclip: OFF")
-end
-
--- Infinite Jump
-local function StartInfiniteJump()
-    if infiniteJump then return end
-    infiniteJump = true
-    
-    jumpConnection = UserInputService.JumpRequest:Connect(function()
-        if infiniteJump and LocalPlayer.Character then
-            local humanoid = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            if humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Jumping then
-                humanoid:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end
-    end)
-    
-    ConsolePrint("Infinite Jump: ON")
-end
-
-local function StopInfiniteJump()
-    infiniteJump = false
-    
-    if jumpConnection then
-        jumpConnection:Disconnect()
-        jumpConnection = nil
-    end
-    
-    ConsolePrint("Infinite Jump: OFF")
-end
-
--- Invisible
-local function StartInvisible()
-    if invisible then return end
-    invisible = true
-    
-    local char = LocalPlayer.Character
-    if not char then return end
-    
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            originalTransparency[part] = part.Transparency
-            part.Transparency = 1
-        end
-    end
-    
-    ConsolePrint("Invisible: ON")
-end
-
-local function StopInvisible()
-    if not invisible then return end
-    invisible = false
-    
-    local char = LocalPlayer.Character
-    if char then
-        for part, original in pairs(originalTransparency) do
-            if part.Parent == char then
-                part.Transparency = original
-            end
-        end
-    end
-    originalTransparency = {}
-    
-    ConsolePrint("Invisible: OFF")
-end
-
--- Spin System
-local function StartSpin(speed)
-    if spinning then return end
-    
-    local target = Admin.TargetPlayer
-    if not target or target == LocalPlayer then
-        ConsolePrint("No target selected for spin!")
-        return
-    end
-    
-    local char = target.Character
-    if not char then
-        ConsolePrint("Target has no character!")
-        return
-    end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then
-        ConsolePrint("Target has no HumanoidRootPart!")
-        return
-    end
-    
-    spinning = true
-    local spinSpeedValue = speed or Admin.SpinSpeed
-    
-    spinConnection = RunService.RenderStepped:Connect(function(dt)
-        if spinning and target.Character and hrp and hrp.Parent then
-            local newAngle = spinSpeedValue * dt
-            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(newAngle), 0)
-        end
-    end)
-    
-    ConsolePrint("Spinning " .. target.Name .. " at speed " .. tostring(spinSpeedValue) .. "!")
-end
-
-local function StopSpin()
-    if not spinning then return end
-    spinning = false
-    
-    if spinConnection then
-        spinConnection:Disconnect()
-        spinConnection = nil
-    end
-    
-    ConsolePrint("Spin stopped!")
-end
-
--- Fling System
-local function StartFling()
-    if flinging then return end
-    
-    local target = Admin.TargetPlayer
-    if not target or target == LocalPlayer then
-        ConsolePrint("No target selected for fling!")
-        return
-    end
-    
-    local char = target.Character
-    if not char then
-        ConsolePrint("Target has no character!")
-        return
-    end
-    
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then
-        ConsolePrint("Target has no HumanoidRootPart!")
-        return
-    end
-    
-    flinging = true
-    
-    flingConnection = RunService.RenderStepped:Connect(function()
-        if flinging and target.Character and hrp and hrp.Parent then
-            local randomDir = Vector3.new(math.random(-150, 150), math.random(50, 200), math.random(-150, 150))
-            hrp.AssemblyLinearVelocity = randomDir
-        end
-    end)
-    
-    ConsolePrint("Flinging " .. target.Name .. "!")
-end
-
-local function StopFling()
-    if not flinging then return end
-    flinging = false
-    
-    if flingConnection then
-        flingConnection:Disconnect()
-        flingConnection = nil
-    end
-    
-    ConsolePrint("Fling stopped!")
-end
-
--- Building Tools
-local function GiveBuildingTools()
-    local toolIds = {
-        "rbxassetid://169209103",
-        "rbxassetid://169191869",
-        "rbxassetid://169211324",
-        "rbxassetid://169217863",
-        "rbxassetid://169223733",
-        "rbxassetid://169224140",
-        "rbxassetid://169224309",
-        "rbxassetid://169224443",
-        "rbxassetid://169224599",
-        "rbxassetid://169224715",
-    }
-    
-    local backpack = LocalPlayer:FindFirstChild("Backpack")
-    if not backpack then return end
-    
-    for _, toolId in pairs(toolIds) do
-        local tool = Instance.new("Tool")
-        tool.Name = "Building Tool"
-        tool.RequiresHandle = false
-        tool.ToolTip = "Building Tool"
-        tool.Parent = backpack
-    end
-    
-    ConsolePrint("Building tools added to backpack!")
-end
-
--- DEX Explorer
-local function OpenDEX()
-    loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
-    ConsolePrint("DEX Explorer opened!")
-end
-
--- Server Hop
-local function ServerHop()
-    local servers = {}
-    
-    local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?limit=100"
-    
-    local success, response = pcall(function()
-        return game:HttpGet(url)
-    end)
-    
-    if success and response then
-        local data = HttpService:JSONDecode(response)
-        for _, server in pairs(data.data) do
-            if server.playing < server.maxPlayers and server.id ~= game.JobId then
-                table.insert(servers, server.id)
-            end
-        end
-    end
-    
-    if #servers > 0 then
-        local randomServer = servers[math.random(1, #servers)]
-        TeleportService:TeleportToPlaceInstance(game.PlaceId, randomServer, LocalPlayer)
-        ConsolePrint("Teleporting to new server...")
-    else
-        ConsolePrint("No servers found to hop to!")
-    end
-end
-
--- ==================== PROCESS COMMAND ====================
+-- ==================== PROCESS COMMAND (DEFINED LAST) ====================
 
 local function ProcessCommand(cmd)
     if not cmd or cmd == "" then return end
     if type(cmd) ~= "string" then return end
     
-    -- Remove the ; prefix if it exists
     if string.sub(cmd, 1, 1) == ";" then
         cmd = string.sub(cmd, 2)
     end
@@ -2581,13 +2601,12 @@ local function ProcessCommand(cmd)
     
     local command = string.lower(args[1])
     
-    -- Player Commands
     if command == "speed" then
         local speed = tonumber(args[2])
         if speed then
             Admin.Speed = speed
             ApplyMovementSettings()
-            ConsolePrint("Speed set to " .. tostring(speed))
+            ConsolePrint("🏃 Speed set to " .. tostring(speed))
         else
             ConsolePrint("Usage: speed [number]")
         end
@@ -2597,7 +2616,7 @@ local function ProcessCommand(cmd)
         if jump then
             Admin.JumpPower = jump
             ApplyMovementSettings()
-            ConsolePrint("Jump Power set to " .. tostring(jump))
+            ConsolePrint("🦘 Jump Power set to " .. tostring(jump))
         else
             ConsolePrint("Usage: jumppower [number]")
         end
@@ -2620,7 +2639,6 @@ local function ProcessCommand(cmd)
     elseif command == "godmode" or command == "god" then
         if godMode then StopGodMode() else StartGodMode() end
         
-    -- Target Commands
     elseif command == "target" then
         local targetName = args[2]
         if targetName then
@@ -2631,12 +2649,12 @@ local function ProcessCommand(cmd)
                 if targetTextbox then
                     targetTextbox:SetText(target.Name)
                 end
-                ConsolePrint("Target set to: " .. target.Name)
+                ConsolePrint("🎯 Target set to: " .. target.Name)
             else
-                ConsolePrint("Player not found: " .. tostring(targetName))
+                ConsolePrint("❌ Player not found: " .. tostring(targetName))
             end
         else
-            ConsolePrint("Current target: " .. (Admin.TargetPlayerName ~= "" and Admin.TargetPlayerName or "None"))
+            ConsolePrint("🎯 Current target: " .. (Admin.TargetPlayerName ~= "" and Admin.TargetPlayerName or "None"))
         end
         
     elseif command == "spin" then
@@ -2661,7 +2679,7 @@ local function ProcessCommand(cmd)
             if target then
                 KillPlayer(target)
             else
-                ConsolePrint("Player not found: " .. tostring(targetName))
+                ConsolePrint("❌ Player not found: " .. tostring(targetName))
             end
         else
             KillPlayer()
@@ -2674,7 +2692,7 @@ local function ProcessCommand(cmd)
             if target then
                 TeleportToPlayer(target)
             else
-                ConsolePrint("Player not found: " .. tostring(targetName))
+                ConsolePrint("❌ Player not found: " .. tostring(targetName))
             end
         else
             ConsolePrint("Usage: tp [username]")
@@ -2687,13 +2705,12 @@ local function ProcessCommand(cmd)
             if target then
                 HeadSit(target)
             else
-                ConsolePrint("Player not found: " .. tostring(targetName))
+                ConsolePrint("❌ Player not found: " .. tostring(targetName))
             end
         else
             HeadSit()
         end
         
-    -- Utility Commands
     elseif command == "btools" then
         GiveBuildingTools()
         
@@ -2701,32 +2718,7 @@ local function ProcessCommand(cmd)
         OpenDEX()
         
     elseif command == "serverinfo" or command == "info" then
-        local ping = "N/A"
-        local success, result = pcall(function()
-            local network = StatsService:FindFirstChild("Network")
-            if network then
-                local serverStats = network:FindFirstChild("ServerStatsItem")
-                if serverStats then
-                    local dataPing = serverStats:FindFirstChild("Data Ping")
-                    if dataPing then
-                        return dataPing:GetValueString()
-                    end
-                end
-            end
-            return nil
-        end)
-        if success and result then
-            ping = tostring(result)
-        end
-        
-        local infoText = "=== SERVER INFO ===\n" ..
-            "Place ID: " .. tostring(game.PlaceId) .. "\n" ..
-            "Job ID: " .. tostring(game.JobId) .. "\n" ..
-            "Players: " .. tostring(#PlayersService:GetPlayers()) .. "/" .. tostring(game.Players.MaxPlayers) .. "\n" ..
-            "Ping: " .. ping .. " ms\n" ..
-            "Server Time: " .. os.date("%H:%M:%S") .. "\n" ..
-            "=================="
-        ConsolePrint(infoText)
+        ShowServerInfo()
         
     elseif command == "serverhop" or command == "shop" then
         ServerHop()
@@ -2740,33 +2732,12 @@ local function ProcessCommand(cmd)
         end
         
     elseif command == "cmds" or command == "help" then
-        local helpText = "=== COMMANDS ===\n" ..
-            "speed [n] - Set walk speed\n" ..
-            "jumppower [n] - Set jump power\n" ..
-            "fly / unfly - Toggle fly\n" ..
-            "noclip - Toggle noclip\n" ..
-            "infjump - Toggle infinite jump\n" ..
-            "invis - Toggle invisibility\n" ..
-            "godmode - Toggle god mode\n" ..
-            "target [name] - Select target\n" ..
-            "spin [speed] - Spin target\n" ..
-            "fling - Fling target\n" ..
-            "kill [name] - Kill player\n" ..
-            "tp [name] - Teleport to player\n" ..
-            "headsit [name] - Sit on head\n" ..
-            "btools - Give building tools\n" ..
-            "dex - Open DEX Explorer\n" ..
-            "serverinfo - Show server info\n" ..
-            "serverhop - Hop to new server\n" ..
-            "players - Show player list\n" ..
-            "cmds - Show this menu\n" ..
-            "================"
-        ConsolePrint(helpText)
+        ShowCommandList()
         
     elseif command == "creator" then
         ConsolePrint("Universal Admin Panel v2.0\nCreated for Roblox")
     else
-        ConsolePrint("Unknown command: " .. command .. ". Type 'cmds' for help.")
+        ConsolePrint("❌ Unknown command: " .. command .. ". Type 'cmds' for help.")
     end
 end
 
@@ -2850,7 +2821,7 @@ LocalPlayer.CharacterAdded:Connect(function(character)
 end)
 
 -- ==================== UI CREATION ====================
-local Window = Library:CreateWindow("Universal Admin")
+local Window = Library:CreateWindow("Kurby's Admin Panel")
 
 -- Player Tab
 local PlayerTab = Window:CreateTab("Player", "user")
@@ -2892,36 +2863,34 @@ local TargetTab = Window:CreateTab("Target", "target")
 local TargetSubTab = TargetTab:CreateSubTab("Actions", "swords")
 local TargetSection = TargetSubTab:CreateSection("Target Selection")
 
--- Text input for target instead of dropdown
 targetTextbox = TargetSection:CreateTextbox("Target Player Name", Admin.TargetPlayerName, function(val)
     if val and val ~= "" then
         local target = GetPlayer(val)
         if target and target ~= LocalPlayer then
             Admin.TargetPlayer = target
             Admin.TargetPlayerName = target.Name
-            ConsolePrint("Target set to: " .. target.Name)
-            -- Update player list highlight
+            ConsolePrint("🎯 Target set to: " .. target.Name)
             if playerListPopup then
                 pcall(function()
-                    for _, btn in pairs(playerListPopup:GetDescendants()) do
-                        if btn:IsA("Frame") and btn:FindFirstChild("TextLabel") then
-                            local nameLabel = btn:FindFirstChild("TextLabel")
+                    for _, frame in pairs(playerListPopup:GetDescendants()) do
+                        if frame:IsA("Frame") and frame:FindFirstChild("TextLabel") then
+                            local nameLabel = frame:FindFirstChild("TextLabel")
                             if nameLabel and nameLabel.Text == target.Name then
-                                btn.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
-                            elseif btn.BackgroundColor3 == Color3.fromRGB(160, 60, 255) then
-                                btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+                                frame.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
+                            elseif frame.BackgroundColor3 == Color3.fromRGB(160, 60, 255) then
+                                frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
                             end
                         end
                     end
                 end)
             end
         else
-            ConsolePrint("Player not found: " .. val)
+            ConsolePrint("❌ Player not found: " .. val)
         end
     end
 end)
 
-TargetSection:CreateButton("Show Player List", function()
+TargetSection:CreateButton("📋 Show Player List", function()
     if playerListPopup then
         playerListPopup:Destroy()
         playerListPopup = nil
@@ -2930,7 +2899,7 @@ TargetSection:CreateButton("Show Player List", function()
     end
 end)
 
-TargetSection:CreateButton("Spin Target", function()
+TargetSection:CreateButton("🌀 Spin Target", function()
     if spinning then StopSpin() else StartSpin() end
 end)
 
@@ -2942,19 +2911,19 @@ TargetSection:CreateSlider("Spin Speed", 100, 1000, Admin.SpinSpeed, function(va
     end
 end)
 
-TargetSection:CreateButton("Fling Target", function()
+TargetSection:CreateButton("💥 Fling Target", function()
     if flinging then StopFling() else StartFling() end
 end)
 
-TargetSection:CreateButton("Kill Target", function()
+TargetSection:CreateButton("💀 Kill Target", function()
     KillPlayer()
 end)
 
-TargetSection:CreateButton("Teleport to Target", function()
+TargetSection:CreateButton("✨ Teleport to Target", function()
     TeleportToPlayer(Admin.TargetPlayer)
 end)
 
-TargetSection:CreateButton("Head Sit on Target", function()
+TargetSection:CreateButton("👑 Head Sit on Target", function()
     HeadSit()
 end)
 
@@ -2963,19 +2932,19 @@ local UtilityTab = Window:CreateTab("Utility", "settings")
 local UtilitySubTab = UtilityTab:CreateSubTab("Tools", "save")
 local UtilitySection = UtilitySubTab:CreateSection("Utility Tools")
 
-UtilitySection:CreateButton("Give Building Tools (btools)", function()
+UtilitySection:CreateButton("🔨 Give Building Tools (btools)", function()
     GiveBuildingTools()
 end)
 
-UtilitySection:CreateButton("Open DEX Explorer (dex)", function()
+UtilitySection:CreateButton("📁 Open DEX Explorer (dex)", function()
     OpenDEX()
 end)
 
-UtilitySection:CreateButton("Show Server Info (serverinfo)", function()
-    ProcessCommand("serverinfo")
+UtilitySection:CreateButton("ℹ️ Show Server Info (serverinfo)", function()
+    ShowServerInfo()
 end)
 
-UtilitySection:CreateButton("Server Hop (serverhop)", function()
+UtilitySection:CreateButton("🔄 Server Hop (serverhop)", function()
     ServerHop()
 end)
 
@@ -2984,11 +2953,11 @@ local CommandsTab = Window:CreateTab("Commands", "commands")
 local CommandsSubTab = CommandsTab:CreateSubTab("Help", "globe")
 local CommandsSection = CommandsSubTab:CreateSection("Command List")
 
-CommandsSection:CreateButton("Show All Commands (cmds)", function()
+CommandsSection:CreateButton("📚 Show All Commands (cmds)", function()
     ShowCommandList()
 end)
 
-CommandsSection:CreateButton("Execute Custom Command", function()
+CommandsSection:CreateButton("⌨️ Execute Custom Command", function()
     ShowCommandPrompt("")
 end)
 
@@ -2997,39 +2966,38 @@ local InfoTab = Window:CreateTab("Info", "info")
 local InfoSubTab = InfoTab:CreateSubTab("About", "user")
 local InfoSection = InfoSubTab:CreateSection("INFORMATION")
 
-InfoSection:CreateLabel("═══════════════════════════════")
-InfoSection:CreateLabel("     UNIVERSAL ADMIN PANEL")
-InfoSection:CreateLabel("═══════════════════════════════")
+InfoSection:CreateLabel("═══════════════════════════════════════")
+InfoSection:CreateLabel("         Kurby's Admin Panel")
+InfoSection:CreateLabel("═══════════════════════════════════════")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("Version: 2.0")
-InfoSection:CreateLabel("Works in ALL Roblox games!")
+InfoSection:CreateLabel("📌 Version: 2.0")
+InfoSection:CreateLabel("🎮 Works in ALL Roblox games!")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("HOW TO USE:")
-InfoSection:CreateLabel("Press Right Shift to toggle UI")
-InfoSection:CreateLabel("Type commands in chat or use UI")
-InfoSection:CreateLabel("Example: fly")
-InfoSection:CreateLabel("Example: speed 50")
-InfoSection:CreateLabel("Example: target PlayerName")
+InfoSection:CreateLabel("📖 HOW TO USE:")
+InfoSection:CreateLabel("   • Press Right Shift to toggle UI")
+InfoSection:CreateLabel("   • Type commands in chat or use UI")
+InfoSection:CreateLabel("   • Example: fly")
+InfoSection:CreateLabel("   • Example: speed 50")
+InfoSection:CreateLabel("   • Example: target PlayerName")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("FEATURES:")
-InfoSection:CreateLabel("God Mode - You can't die!")
-InfoSection:CreateLabel("Adjustable Spin Speed")
-InfoSection:CreateLabel("Live Player List with Copy")
-InfoSection:CreateLabel("Auto-Complete Command Bar")
-InfoSection:CreateLabel("Tab to autocomplete commands")
+InfoSection:CreateLabel("✨ FEATURES:")
+InfoSection:CreateLabel("   • God Mode - You can't die!")
+InfoSection:CreateLabel("   • Adjustable Spin Speed")
+InfoSection:CreateLabel("   • Live Player List with Copy")
+InfoSection:CreateLabel("   • Auto-Complete Command Bar")
+InfoSection:CreateLabel("   • Tab to autocomplete commands")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("COMMANDS:")
-InfoSection:CreateLabel("fly / unfly - Toggle flight")
-InfoSection:CreateLabel("players - Show player list")
-InfoSection:CreateLabel("cmds - Show all commands")
+InfoSection:CreateLabel("📝 COMMANDS:")
+InfoSection:CreateLabel("   • fly / unfly - Toggle flight")
+InfoSection:CreateLabel("   • players - Show player list")
+InfoSection:CreateLabel("   • cmds - Show all commands")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("Drag the UI by the top bar")
-InfoSection:CreateLabel("═══════════════════════════════")
+InfoSection:CreateLabel("💡 TIP: Drag the UI by the top bar")
+InfoSection:CreateLabel("═══════════════════════════════════════")
 
 -- Start
 SetupChatCommands()
 
--- Apply initial movement settings
 task.wait(0.5)
 ApplyMovementSettings()
 
