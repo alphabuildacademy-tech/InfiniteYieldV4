@@ -1,4 +1,4 @@
--- main.lua (Kurby's Admin Panel)
+-- main.lua (Kurby's Admin Panel) 
 -- Made By - Z..../Zoro
 
 -- ==================== UI LIBRARY ====================
@@ -15,6 +15,24 @@ local ContextActionService = game:GetService("ContextActionService")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local MarketplaceService = game:GetService("MarketplaceService")
+local StatsService = game:GetService("Stats")
+
+-- Clipboard function 
+local function CopyToClipboard(text)
+    if setclipboard then
+        setclipboard(text)
+    elseif toclipboard then
+        toclipboard(text)
+    elseif syn and syn.write_clipboard then
+        syn.write_clipboard(text)
+    elseif game:GetService("CoreGui").RobloxGui:FindFirstChild("Clipboard") then
+        game:GetService("CoreGui").RobloxGui.Clipboard:SetText(text)
+    else
+        warn("Clipboard not supported")
+        return false
+    end
+    return true
+end
 
 local Library = { Toggled = true, Accent = Color3.fromRGB(160, 60, 255), _blockDrag = false }
 
@@ -705,6 +723,63 @@ function Library:CreateWindow(title)
                     }
                 end
 
+                function S:CreateTextbox(n, def, cb)
+                    local currentValue = def or ""
+                    
+                    local F = Create("Frame", {
+                        Parent = Content,
+                        BackgroundColor3 = Color3.fromRGB(13, 13, 13),
+                        Size = UDim2.new(1, 0, 0, 42)
+                    })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 6), Parent = F })
+                    
+                    local Lbl = Create("TextLabel", {
+                        Parent = F,
+                        BackgroundTransparency = 1,
+                        Position = UDim2.new(0, 12, 0, 0),
+                        Size = UDim2.new(0, 100, 1, 0),
+                        Font = "Gotham",
+                        Text = n,
+                        TextColor3 = Color3.fromRGB(225, 225, 225),
+                        TextSize = 14,
+                        TextXAlignment = "Left"
+                    })
+                    
+                    local Box = Create("TextBox", {
+                        Parent = F,
+                        BackgroundColor3 = Color3.fromRGB(30, 30, 30),
+                        Position = UDim2.new(0, 120, 0, 6),
+                        Size = UDim2.new(1, -130, 0, 30),
+                        Font = "Gotham",
+                        Text = currentValue,
+                        PlaceholderText = "Enter player name...",
+                        TextColor3 = Color3.fromRGB(255, 255, 255),
+                        PlaceholderColor3 = Color3.fromRGB(150, 150, 150),
+                        TextSize = 13,
+                        ClearTextOnFocus = false
+                    })
+                    Create("UICorner", { CornerRadius = UDim.new(0, 4), Parent = Box })
+                    
+                    Box.FocusLost:Connect(function(enterPressed)
+                        if enterPressed and Box.Text ~= "" then
+                            currentValue = Box.Text
+                            if cb then
+                                cb(currentValue)
+                            end
+                        end
+                    end)
+                    
+                    return {
+                        SetText = function(_, text)
+                            currentValue = text
+                            Box.Text = text
+                        end,
+                        GetText = function()
+                            return currentValue
+                        end
+                    }
+                end
+
                 function S:CreateDropdown(n, items, def, cb)
                     items = items or {}
                     cb = cb or function() end
@@ -1094,6 +1169,7 @@ local LocalPlayer = PlayersService.LocalPlayer
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local CoreGui = game:GetService("CoreGui")
+local StatsService = game:GetService("Stats")
 
 -- Admin Settings
 local Admin = {
@@ -1105,7 +1181,7 @@ local Admin = {
     Invisible = false,
     GodMode = false,
     TargetPlayer = nil,
-    TargetPlayerName = "None",
+    TargetPlayerName = "",
     SpinSpeed = 360,
 }
 
@@ -1128,22 +1204,57 @@ local spinConnection = nil
 local flingConnection = nil
 local originalTransparency = {}
 
+-- UI References
+local targetTextbox = nil
+local playerListPopup = nil
+local currentSuggestions = {}
+local suggestionIndex = 0
+
+-- Command list for auto-complete
+local commandList = {
+    "speed", "jumppower", "jp", "fly", "unfly", "noclip", "infjump", "infj",
+    "invis", "invisible", "godmode", "god", "target", "spin", "fling", "kill",
+    "tp", "headsit", "btools", "dex", "explorer", "serverinfo", "info",
+    "serverhop", "shop", "players", "playerlist", "cmds", "help", "creator"
+}
+
 -- Console output
 local function ConsolePrint(msg)
     print(msg)
 end
 
--- ==================== COMMAND PROMPT ====================
+-- ==================== CLIPBOARD FUNCTIONS ====================
 
-local function ShowCommandPrompt(defaultCommand)
+local function CopyToClipboard(text)
+    if setclipboard then
+        setclipboard(text)
+        return true
+    elseif toclipboard then
+        toclipboard(text)
+        return true
+    elseif syn and syn.write_clipboard then
+        syn.write_clipboard(text)
+        return true
+    end
+    return false
+end
+
+-- ==================== PLAYER LIST POPUP WITH COPY FEATURE ====================
+
+local function CreatePlayerListPopup()
+    if playerListPopup then
+        pcall(function() playerListPopup:Destroy() end)
+        playerListPopup = nil
+    end
+    
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "CommandPromptGui"
+    screenGui.Name = "PlayerListGui"
     screenGui.Parent = CoreGui
     screenGui.ResetOnSpawn = false
     
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 400, 0, 120)
-    frame.Position = UDim2.new(0.5, -200, 0.5, -60)
+    frame.Size = UDim2.new(0, 350, 0, 450)
+    frame.Position = UDim2.new(1, -360, 0.5, -225)
     frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
     frame.BackgroundTransparency = 0
     frame.BorderSizePixel = 0
@@ -1157,6 +1268,274 @@ local function ShowCommandPrompt(defaultCommand)
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Parent = frame
     
+    -- Title bar
+    local titleBar = Instance.new("Frame")
+    titleBar.Size = UDim2.new(1, 0, 0, 35)
+    titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    titleBar.Parent = frame
+    
+    local titleCorner = Instance.new("UICorner")
+    titleCorner.CornerRadius = UDim.new(0, 8)
+    titleCorner.Parent = titleBar
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, -40, 1, 0)
+    titleLabel.Position = UDim2.new(0, 10, 0, 0)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Text = "Players Online"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.TextSize = 14
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    titleLabel.Parent = titleBar
+    
+    local closeBtn = Instance.new("TextButton")
+    closeBtn.Size = UDim2.new(0, 30, 0, 30)
+    closeBtn.Position = UDim2.new(1, -35, 0, 2.5)
+    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 55, 55)
+    closeBtn.Text = "X"
+    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+    closeBtn.TextSize = 14
+    closeBtn.Font = Enum.Font.GothamBold
+    closeBtn.Parent = titleBar
+    
+    local closeCorner = Instance.new("UICorner")
+    closeCorner.CornerRadius = UDim.new(0, 4)
+    closeCorner.Parent = closeBtn
+    
+    closeBtn.MouseButton1Click:Connect(function()
+        screenGui:Destroy()
+        playerListPopup = nil
+    end)
+    
+    -- Player count label
+    local countLabel = Instance.new("TextLabel")
+    countLabel.Size = UDim2.new(1, -20, 0, 25)
+    countLabel.Position = UDim2.new(0, 10, 0, 40)
+    countLabel.BackgroundTransparency = 1
+    countLabel.Text = "Players: 0"
+    countLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+    countLabel.TextSize = 12
+    countLabel.Font = Enum.Font.Gotham
+    countLabel.TextXAlignment = Enum.TextXAlignment.Left
+    countLabel.Parent = frame
+    
+    -- Player list frame
+    local listFrame = Instance.new("ScrollingFrame")
+    listFrame.Size = UDim2.new(1, -10, 1, -80)
+    listFrame.Position = UDim2.new(0, 5, 0, 70)
+    listFrame.BackgroundTransparency = 1
+    listFrame.BorderSizePixel = 0
+    listFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    listFrame.ScrollBarThickness = 4
+    listFrame.ScrollBarImageColor3 = Color3.fromRGB(160, 60, 255)
+    listFrame.Parent = frame
+    
+    local playerList = Instance.new("UIListLayout")
+    playerList.Padding = UDim.new(0, 5)
+    playerList.Parent = listFrame
+    
+    local function UpdatePlayerList()
+        for _, child in pairs(listFrame:GetChildren()) do
+            if child:IsA("Frame") then
+                child:Destroy()
+            end
+        end
+        
+        local players = {}
+        for _, player in pairs(PlayersService:GetPlayers()) do
+            table.insert(players, player)
+        end
+        
+        table.sort(players, function(a, b) return a.Name < b.Name end)
+        
+        countLabel.Text = "Players: " .. #players
+        
+        for _, player in pairs(players) do
+            local playerFrame = Instance.new("Frame")
+            playerFrame.Size = UDim2.new(1, 0, 0, 50)
+            playerFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+            playerFrame.Parent = listFrame
+            
+            local frameCorner = Instance.new("UICorner")
+            frameCorner.CornerRadius = UDim.new(0, 4)
+            frameCorner.Parent = playerFrame
+            
+            -- Highlight if this is the current target
+            if Admin.TargetPlayer and Admin.TargetPlayer.Name == player.Name then
+                playerFrame.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
+            end
+            
+            -- Username label
+            local nameLabel = Instance.new("TextLabel")
+            nameLabel.Size = UDim2.new(0.5, -10, 1, 0)
+            nameLabel.Position = UDim2.new(0, 10, 0, 0)
+            nameLabel.BackgroundTransparency = 1
+            nameLabel.Text = player.Name
+            nameLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+            nameLabel.TextSize = 13
+            nameLabel.Font = Enum.Font.GothamBold
+            nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+            nameLabel.Parent = playerFrame
+            
+            -- User ID label
+            local idLabel = Instance.new("TextLabel")
+            idLabel.Size = UDim2.new(0.3, -10, 1, 0)
+            idLabel.Position = UDim2.new(0.5, 0, 0, 0)
+            idLabel.BackgroundTransparency = 1
+            idLabel.Text = "ID: " .. player.UserId
+            idLabel.TextColor3 = Color3.fromRGB(160, 160, 160)
+            idLabel.TextSize = 11
+            idLabel.Font = Enum.Font.Gotham
+            idLabel.TextXAlignment = Enum.TextXAlignment.Left
+            idLabel.Parent = playerFrame
+            
+            -- Copy Username button
+            local copyNameBtn = Instance.new("TextButton")
+            copyNameBtn.Size = UDim2.new(0, 30, 0, 25)
+            copyNameBtn.Position = UDim2.new(0.8, 0, 0.5, -12.5)
+            copyNameBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            copyNameBtn.Text = "📋"
+            copyNameBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            copyNameBtn.TextSize = 12
+            copyNameBtn.Font = Enum.Font.GothamBold
+            copyNameBtn.Parent = playerFrame
+            
+            local copyNameCorner = Instance.new("UICorner")
+            copyNameCorner.CornerRadius = UDim.new(0, 4)
+            copyNameCorner.Parent = copyNameBtn
+            
+            copyNameBtn.MouseButton1Click:Connect(function()
+                if CopyToClipboard(player.Name) then
+                    copyNameBtn.Text = "✓"
+                    task.wait(0.5)
+                    copyNameBtn.Text = "📋"
+                    ConsolePrint("Copied username: " .. player.Name)
+                end
+            end)
+            
+            -- Copy User ID button
+            local copyIdBtn = Instance.new("TextButton")
+            copyIdBtn.Size = UDim2.new(0, 30, 0, 25)
+            copyIdBtn.Position = UDim2.new(0.88, 0, 0.5, -12.5)
+            copyIdBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+            copyIdBtn.Text = "🆔"
+            copyIdBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            copyIdBtn.TextSize = 12
+            copyIdBtn.Font = Enum.Font.GothamBold
+            copyIdBtn.Parent = playerFrame
+            
+            local copyIdCorner = Instance.new("UICorner")
+            copyIdCorner.CornerRadius = UDim.new(0, 4)
+            copyIdCorner.Parent = copyIdBtn
+            
+            copyIdBtn.MouseButton1Click:Connect(function()
+                if CopyToClipboard(tostring(player.UserId)) then
+                    copyIdBtn.Text = "✓"
+                    task.wait(0.5)
+                    copyIdBtn.Text = "🆔"
+                    ConsolePrint("Copied User ID: " .. player.UserId)
+                end
+            end)
+            
+            -- Set as target button
+            local targetBtn = Instance.new("TextButton")
+            targetBtn.Size = UDim2.new(0, 40, 0, 25)
+            targetBtn.Position = UDim2.new(0.96, 0, 0.5, -12.5)
+            targetBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
+            targetBtn.Text = "🎯"
+            targetBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+            targetBtn.TextSize = 12
+            targetBtn.Font = Enum.Font.GothamBold
+            targetBtn.Parent = playerFrame
+            
+            local targetCorner = Instance.new("UICorner")
+            targetCorner.CornerRadius = UDim.new(0, 4)
+            targetCorner.Parent = targetBtn
+            
+            targetBtn.MouseButton1Click:Connect(function()
+                if player ~= LocalPlayer then
+                    Admin.TargetPlayer = player
+                    Admin.TargetPlayerName = player.Name
+                    if targetTextbox then
+                        targetTextbox:SetText(player.Name)
+                    end
+                    ConsolePrint("Target set to: " .. player.Name)
+                    UpdatePlayerList()
+                end
+            end)
+        end
+        
+        task.wait()
+        listFrame.CanvasSize = UDim2.new(0, 0, 0, playerList.AbsoluteContentSize.Y + 10)
+    end
+    
+    UpdatePlayerList()
+    
+    -- Auto-refresh every 2 seconds
+    local refreshConnection
+    refreshConnection = game:GetService("RunService").Stepped:Connect(function()
+        if screenGui and screenGui.Parent then
+            UpdatePlayerList()
+        else
+            if refreshConnection then refreshConnection:Disconnect() end
+        end
+    end)
+    
+    -- Make draggable
+    local dragging = false
+    local dragStart, startPos
+    
+    titleBar.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+        end
+    end)
+    
+    titleBar.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local delta = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+        end
+    end)
+    
+    playerListPopup = screenGui
+    return screenGui
+end
+
+-- ==================== COMMAND PROMPT WITH AUTO-COMPLETE ====================
+
+local function ShowCommandPrompt(defaultCommand)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "CommandPromptGui"
+    screenGui.Parent = CoreGui
+    screenGui.ResetOnSpawn = false
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 450, 0, 140)
+    frame.Position = UDim2.new(0.5, -225, 0.5, -70)
+    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    frame.BackgroundTransparency = 0
+    frame.BorderSizePixel = 0
+    frame.Parent = screenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0, 8)
+    corner.Parent = frame
+    
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = Color3.fromRGB(45, 45, 45)
+    stroke.Parent = frame
+    
+    -- Title bar
     local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 35)
     titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -1195,12 +1574,13 @@ local function ShowCommandPrompt(defaultCommand)
         screenGui:Destroy()
     end)
     
+    -- Input box
     local inputBox = Instance.new("TextBox")
     inputBox.Size = UDim2.new(1, -20, 0, 35)
     inputBox.Position = UDim2.new(0, 10, 0, 45)
     inputBox.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     inputBox.Text = defaultCommand or ""
-    inputBox.PlaceholderText = "Enter command (e.g., ;fly)"
+    inputBox.PlaceholderText = "Type command... (Tab to autocomplete)"
     inputBox.TextColor3 = Color3.fromRGB(255, 255, 255)
     inputBox.PlaceholderColor3 = Color3.fromRGB(150, 150, 150)
     inputBox.TextSize = 13
@@ -1212,6 +1592,20 @@ local function ShowCommandPrompt(defaultCommand)
     inputCorner.CornerRadius = UDim.new(0, 4)
     inputCorner.Parent = inputBox
     
+    -- Suggestions frame
+    local suggestionsFrame = Instance.new("Frame")
+    suggestionsFrame.Size = UDim2.new(1, -20, 0, 0)
+    suggestionsFrame.Position = UDim2.new(0, 10, 0, 85)
+    suggestionsFrame.BackgroundTransparency = 1
+    suggestionsFrame.ClipsDescendants = true
+    suggestionsFrame.Visible = false
+    suggestionsFrame.Parent = frame
+    
+    local suggestionsList = Instance.new("UIListLayout")
+    suggestionsList.Padding = UDim.new(0, 2)
+    suggestionsList.Parent = suggestionsFrame
+    
+    -- Execute button
     local execBtn = Instance.new("TextButton")
     execBtn.Size = UDim2.new(0, 80, 0, 30)
     execBtn.Position = UDim2.new(1, -90, 1, -40)
@@ -1226,24 +1620,175 @@ local function ShowCommandPrompt(defaultCommand)
     execCorner.CornerRadius = UDim.new(0, 4)
     execCorner.Parent = execBtn
     
-    execBtn.MouseButton1Click:Connect(function()
-        local cmd = inputBox.Text
-        if cmd and cmd ~= "" then
+    -- Get player names for auto-complete
+    local function GetPlayerNames()
+        local names = {}
+        for _, player in pairs(PlayersService:GetPlayers()) do
+            if player ~= LocalPlayer then
+                table.insert(names, player.Name)
+            end
+        end
+        return names
+    end
+    
+    -- Update suggestions based on input
+    local function UpdateSuggestions()
+        local text = inputBox.Text
+        local parts = {}
+        for word in string.gmatch(text, "[^%s]+") do
+            table.insert(parts, word)
+        end
+        
+        local lastPart = parts[#parts] or ""
+        local isCommandPart = #parts <= 1
+        
+        local suggestions = {}
+        
+        if isCommandPart then
+            -- Suggest commands
+            for _, cmd in pairs(commandList) do
+                if string.sub(string.lower(cmd), 1, string.len(lastPart)) == string.lower(lastPart) and lastPart ~= "" then
+                    table.insert(suggestions, cmd)
+                elseif lastPart == "" and #suggestions < 10 then
+                    table.insert(suggestions, cmd)
+                end
+            end
+        else
+            -- Suggest player names for commands that need a target
+            local targetCommands = {"target", "kill", "tp", "headsit", "spin", "fling"}
+            local firstCmd = string.lower(parts[1] or "")
+            
+            for _, tc in pairs(targetCommands) do
+                if tc == firstCmd or (firstCmd == "target" and tc == "target") then
+                    for _, player in pairs(PlayersService:GetPlayers()) do
+                        if player ~= LocalPlayer then
+                            if string.sub(string.lower(player.Name), 1, string.len(lastPart)) == string.lower(lastPart) then
+                                table.insert(suggestions, player.Name)
+                            end
+                        end
+                    end
+                    break
+                end
+            end
+        end
+        
+        -- Clear old suggestions
+        for _, child in pairs(suggestionsFrame:GetChildren()) do
+            if child:IsA("TextButton") then
+                child:Destroy()
+            end
+        end
+        
+        if #suggestions > 0 then
+            suggestionsFrame.Visible = true
+            currentSuggestions = suggestions
+            suggestionIndex = 0
+            
+            for i, sug in pairs(suggestions) do
+                local sugBtn = Instance.new("TextButton")
+                sugBtn.Size = UDim2.new(1, 0, 0, 25)
+                sugBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                sugBtn.Text = sug
+                sugBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+                sugBtn.TextSize = 12
+                sugBtn.Font = Enum.Font.Gotham
+                sugBtn.TextXAlignment = Enum.TextXAlignment.Left
+                sugBtn.Parent = suggestionsFrame
+                
+                local btnCorner = Instance.new("UICorner")
+                btnCorner.CornerRadius = UDim.new(0, 4)
+                btnCorner.Parent = sugBtn
+                
+                sugBtn.MouseButton1Click:Connect(function()
+                    if isCommandPart then
+                        inputBox.Text = sug .. " "
+                    else
+                        local newText = ""
+                        for j, part in ipairs(parts) do
+                            if j < #parts then
+                                newText = newText .. part .. " "
+                            else
+                                newText = newText .. sug
+                            end
+                        end
+                        inputBox.Text = newText
+                    end
+                    inputBox:CaptureFocus()
+                    UpdateSuggestions()
+                end)
+                
+                sugBtn.MouseEnter:Connect(function()
+                    sugBtn.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
+                    sugBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+                end)
+                
+                sugBtn.MouseLeave:Connect(function()
+                    sugBtn.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+                    sugBtn.TextColor3 = Color3.fromRGB(200, 200, 200)
+                end)
+            end
+            
+            local totalHeight = #suggestions * 27
+            suggestionsFrame.Size = UDim2.new(1, -20, 0, math.min(totalHeight, 150))
+            frame.Size = UDim2.new(0, 450, 0, 140 + math.min(totalHeight, 150))
+        else
+            suggestionsFrame.Visible = false
+            frame.Size = UDim2.new(0, 450, 0, 140)
+        end
+    end
+    
+    -- Handle Tab key for autocomplete
+    inputBox:GetPropertyChangedSignal("Text"):Connect(UpdateSuggestions)
+    
+    inputBox.InputBegan:Connect(function(input, gameProcessed)
+        if gameProcessed then return end
+        
+        if input.KeyCode == Enum.KeyCode.Tab and #currentSuggestions > 0 then
+            suggestionIndex = (suggestionIndex % #currentSuggestions) + 1
+            local selected = currentSuggestions[suggestionIndex]
+            
+            local parts = {}
+            for word in string.gmatch(inputBox.Text, "[^%s]+") do
+                table.insert(parts, word)
+            end
+            
+            if #parts <= 1 then
+                inputBox.Text = selected .. " "
+            else
+                local newText = ""
+                for i, part in ipairs(parts) do
+                    if i < #parts then
+                        newText = newText .. part .. " "
+                    else
+                        newText = newText .. selected
+                    end
+                end
+                inputBox.Text = newText
+            end
+            inputBox:CaptureFocus()
+            UpdateSuggestions()
+        elseif input.KeyCode == Enum.KeyCode.Enter then
+            local cmd = inputBox.Text
+            screenGui:Destroy()
             ProcessCommand(cmd)
         end
+    end)
+    
+    execBtn.MouseButton1Click:Connect(function()
+        local cmd = inputBox.Text
         screenGui:Destroy()
+        ProcessCommand(cmd)
     end)
     
     inputBox.FocusLost:Connect(function(enterPressed)
         if enterPressed then
             local cmd = inputBox.Text
-            if cmd and cmd ~= "" then
-                ProcessCommand(cmd)
-            end
             screenGui:Destroy()
+            ProcessCommand(cmd)
         end
     end)
     
+    -- Make draggable
     local dragging = false
     local dragStart, startPos
     
@@ -1270,182 +1815,36 @@ local function ShowCommandPrompt(defaultCommand)
     
     task.wait()
     inputBox:CaptureFocus()
+    UpdateSuggestions()
     
     return screenGui
 end
 
--- ==================== UI POPUP FUNCTIONS ====================
+-- ==================== COMMAND LIST POPUP ====================
 
-local function CreatePopup(title, content, size)
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "PopupGui"
-    screenGui.Parent = CoreGui
-    screenGui.ResetOnSpawn = false
-    
-    local frame = Instance.new("Frame")
-    frame.Size = size or UDim2.new(0, 500, 0, 400)
-    frame.Position = UDim2.new(0.5, -250, 0.5, -200)
-    frame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    frame.BackgroundTransparency = 0
-    frame.BorderSizePixel = 0
-    frame.Parent = screenGui
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 8)
-    corner.Parent = frame
-    
-    local stroke = Instance.new("UIStroke")
-    stroke.Color = Color3.fromRGB(45, 45, 45)
-    stroke.Parent = frame
-    
-    local titleBar = Instance.new("Frame")
-    titleBar.Size = UDim2.new(1, 0, 0, 35)
-    titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    titleBar.Parent = frame
-    
-    local titleCorner = Instance.new("UICorner")
-    titleCorner.CornerRadius = UDim.new(0, 8)
-    titleCorner.Parent = titleBar
-    
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, -40, 1, 0)
-    titleLabel.Position = UDim2.new(0, 10, 0, 0)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.Text = title
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.TextSize = 14
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextXAlignment = Enum.TextXAlignment.Left
-    titleLabel.Parent = titleBar
-    
-    local closeBtn = Instance.new("TextButton")
-    closeBtn.Size = UDim2.new(0, 30, 0, 30)
-    closeBtn.Position = UDim2.new(1, -35, 0, 2.5)
-    closeBtn.BackgroundColor3 = Color3.fromRGB(200, 55, 55)
-    closeBtn.Text = "X"
-    closeBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    closeBtn.TextSize = 14
-    closeBtn.Font = Enum.Font.GothamBold
-    closeBtn.Parent = titleBar
-    
-    local closeCorner = Instance.new("UICorner")
-    closeCorner.CornerRadius = UDim.new(0, 4)
-    closeCorner.Parent = closeBtn
-    
-    closeBtn.MouseButton1Click:Connect(function()
-        screenGui:Destroy()
-    end)
-    
-    local dragging = false
-    local dragStart, startPos
-    
-    titleBar.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-        end
-    end)
-    
-    titleBar.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    
-    UserInputService.InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-    
-    local contentFrame = Instance.new("ScrollingFrame")
-    contentFrame.Size = UDim2.new(1, -20, 1, -45)
-    contentFrame.Position = UDim2.new(0, 10, 0, 40)
-    contentFrame.BackgroundTransparency = 1
-    contentFrame.BorderSizePixel = 0
-    contentFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    contentFrame.ScrollBarThickness = 4
-    contentFrame.ScrollBarImageColor3 = Color3.fromRGB(160, 60, 255)
-    contentFrame.Parent = frame
-    
-    local uiList = Instance.new("UIListLayout")
-    uiList.Padding = UDim.new(0, 5)
-    uiList.Parent = contentFrame
-    
-    local padding = Instance.new("UIPadding")
-    padding.PaddingTop = UDim.new(0, 5)
-    padding.PaddingBottom = UDim.new(0, 5)
-    padding.PaddingLeft = UDim.new(0, 5)
-    padding.PaddingRight = UDim.new(0, 5)
-    padding.Parent = contentFrame
-    
-    if type(content) == "table" then
-        for _, item in pairs(content) do
-            local btn = Instance.new("TextButton")
-            btn.Size = UDim2.new(1, 0, 0, 35)
-            btn.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-            btn.Text = item.text
-            btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-            btn.TextSize = 13
-            btn.Font = Enum.Font.Gotham
-            btn.Parent = contentFrame
-            
-            local btnCorner = Instance.new("UICorner")
-            btnCorner.CornerRadius = UDim.new(0, 4)
-            btnCorner.Parent = btn
-            
-            btn.MouseButton1Click:Connect(item.callback)
-        end
-    elseif type(content) == "string" then
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0, 0)
-        label.BackgroundTransparency = 1
-        label.Text = content
-        label.TextColor3 = Color3.fromRGB(200, 200, 200)
-        label.TextSize = 13
-        label.Font = Enum.Font.Gotham
-        label.TextWrapped = true
-        label.TextXAlignment = Enum.TextXAlignment.Left
-        label.TextYAlignment = Enum.TextYAlignment.Top
-        label.Parent = contentFrame
-        label.Size = UDim2.new(1, 0, 0, label.TextBounds.Y + 10)
-    end
-    
-    local function updateCanvas()
-        contentFrame.CanvasSize = UDim2.new(0, 0, 0, uiList.AbsoluteContentSize.Y + 10)
-    end
-    
-    uiList:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(updateCanvas)
-    task.wait()
-    updateCanvas()
-    
-    return screenGui
-end
-
--- Command list popup
 local function ShowCommandList()
     local commandsList = {
-        {cmd = ";speed [value]", desc = "Set walk speed"},
-        {cmd = ";jumppower [value]", desc = "Set jump power"},
-        {cmd = ";fly", desc = "Toggle fly mode"},
-        {cmd = ";noclip", desc = "Toggle noclip"},
-        {cmd = ";infjump", desc = "Toggle infinite jump"},
-        {cmd = ";invis", desc = "Toggle invisibility"},
-        {cmd = ";godmode", desc = "Toggle god mode"},
-        {cmd = ";target [name]", desc = "Select target player"},
-        {cmd = ";spin [speed]", desc = "Spin target (optional speed)"},
-        {cmd = ";fling", desc = "Fling target"},
-        {cmd = ";kill [name]", desc = "Kill target player"},
-        {cmd = ";tp [name]", desc = "Teleport to player"},
-        {cmd = ";headsit [name]", desc = "Sit on player's head"},
-        {cmd = ";btools", desc = "Give building tools"},
-        {cmd = ";dex", desc = "Open DEX Explorer"},
-        {cmd = ";serverinfo", desc = "Show server info"},
-        {cmd = ";serverhop", desc = "Hop to new server"},
-        {cmd = ";cmds", desc = "Show this menu"},
-        {cmd = ";creator", desc = "Show creator info"},
+        {cmd = "speed [value]", desc = "Set walk speed"},
+        {cmd = "jumppower [value]", desc = "Set jump power"},
+        {cmd = "fly", desc = "Toggle fly mode"},
+        {cmd = "unfly", desc = "Turn off fly mode"},
+        {cmd = "noclip", desc = "Toggle noclip"},
+        {cmd = "infjump", desc = "Toggle infinite jump"},
+        {cmd = "invis", desc = "Toggle invisibility"},
+        {cmd = "godmode", desc = "Toggle god mode"},
+        {cmd = "target [name]", desc = "Select target player"},
+        {cmd = "spin [speed]", desc = "Spin target (optional speed)"},
+        {cmd = "fling", desc = "Fling target"},
+        {cmd = "kill [name]", desc = "Kill target player"},
+        {cmd = "tp [name]", desc = "Teleport to player"},
+        {cmd = "headsit [name]", desc = "Sit on player's head"},
+        {cmd = "btools", desc = "Give building tools"},
+        {cmd = "dex", desc = "Open DEX Explorer"},
+        {cmd = "serverinfo", desc = "Show server info"},
+        {cmd = "serverhop", desc = "Hop to new server"},
+        {cmd = "players", desc = "Show player list"},
+        {cmd = "cmds", desc = "Show this menu"},
+        {cmd = "creator", desc = "Show creator info"},
     }
     
     local screenGui = Instance.new("ScreenGui")
@@ -1469,6 +1868,7 @@ local function ShowCommandList()
     stroke.Color = Color3.fromRGB(45, 45, 45)
     stroke.Parent = frame
     
+    -- Title bar
     local titleBar = Instance.new("Frame")
     titleBar.Size = UDim2.new(1, 0, 0, 35)
     titleBar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
@@ -1507,6 +1907,7 @@ local function ShowCommandList()
         screenGui:Destroy()
     end)
     
+    -- Search bar
     local searchBox = Instance.new("TextBox")
     searchBox.Size = UDim2.new(1, -20, 0, 35)
     searchBox.Position = UDim2.new(0, 10, 0, 45)
@@ -1523,6 +1924,7 @@ local function ShowCommandList()
     searchCorner.CornerRadius = UDim.new(0, 4)
     searchCorner.Parent = searchBox
     
+    -- Command list
     local listFrame = Instance.new("ScrollingFrame")
     listFrame.Size = UDim2.new(1, -20, 1, -100)
     listFrame.Position = UDim2.new(0, 10, 0, 90)
@@ -1610,6 +2012,7 @@ local function ShowCommandList()
     
     populateList("")
     
+    -- Make draggable
     local dragging = false
     local dragStart, startPos
     
@@ -1637,25 +2040,9 @@ local function ShowCommandList()
     return screenGui
 end
 
--- Server info popup
-local function ShowServerInfoPopup()
-    local placeId = tostring(game.PlaceId)
-    local jobId = tostring(game.JobId)
-    local playerCount = tostring(#PlayersService:GetPlayers())
-    local maxPlayers = tostring(game.Players.MaxPlayers)
-    local ping = tostring(game.Stats.Network.ServerStatsItem["Data Ping"]:GetValue())
-    
-    local infoText = "Place ID: " .. placeId .. 
-        "\nJob ID: " .. jobId .. 
-        "\nPlayers: " .. playerCount .. "/" .. maxPlayers .. 
-        "\nPing: " .. ping .. " ms" ..
-        "\n\nServer Time: " .. os.date("%H:%M:%S")
-    
-    CreatePopup("Server Info", infoText, UDim2.new(0, 400, 0, 300))
-end
+-- ==================== COMMAND SYSTEM ====================
 
--- ==================== PLAYER MANAGEMENT ====================
-
+-- Get all players
 local function GetAllPlayers()
     local players = {}
     for _, player in pairs(PlayersService:GetPlayers()) do
@@ -1680,18 +2067,117 @@ local function GetPlayer(input)
     return nil
 end
 
-local function UpdateTargetList()
-    local players = GetAllPlayers()
-    local names = {"None"}
-    for _, player in pairs(players) do
-        if player ~= LocalPlayer then
-            table.insert(names, player.Name)
+-- Apply speed and jump power
+local function ApplyMovementSettings()
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            pcall(function()
+                humanoid.WalkSpeed = Admin.Speed
+                humanoid.JumpPower = Admin.JumpPower
+            end)
         end
     end
-    return names
 end
 
--- ==================== GOD MODE ====================
+-- Kill Player
+local function KillPlayer(targetPlayer)
+    local target = targetPlayer or Admin.TargetPlayer
+    if not target or target == LocalPlayer then
+        ConsolePrint("No target selected to kill!")
+        return
+    end
+    
+    local char = target.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.Health = 0
+            ConsolePrint("Killed " .. target.Name .. "!")
+        else
+            ConsolePrint("Could not kill " .. target.Name .. "!")
+        end
+    else
+        ConsolePrint(target.Name .. " has no character!")
+    end
+end
+
+-- Teleport to Player
+local function TeleportToPlayer(targetPlayer)
+    local target = targetPlayer
+    if not target or target == LocalPlayer then
+        ConsolePrint("No target selected to teleport to!")
+        return
+    end
+    
+    local targetChar = target.Character
+    if not targetChar then
+        ConsolePrint("Target has no character!")
+        return
+    end
+    
+    local localChar = LocalPlayer.Character
+    if not localChar then
+        ConsolePrint("You have no character!")
+        return
+    end
+    
+    local targetPos = targetChar:GetPivot().Position
+    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
+    
+    if localHRP then
+        localHRP.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
+        ConsolePrint("Teleported to " .. target.Name .. "!")
+    else
+        ConsolePrint("Could not teleport!")
+    end
+end
+
+-- Head Sit
+local function HeadSit(targetPlayer)
+    local target = targetPlayer or Admin.TargetPlayer
+    if not target or target == LocalPlayer then
+        ConsolePrint("No target selected for headsit!")
+        return
+    end
+    
+    local targetChar = target.Character
+    if not targetChar then
+        ConsolePrint("Target has no character!")
+        return
+    end
+    
+    local localChar = LocalPlayer.Character
+    if not localChar then
+        ConsolePrint("You have no character!")
+        return
+    end
+    
+    local head = targetChar:FindFirstChild("Head")
+    if not head then
+        ConsolePrint("Target has no head!")
+        return
+    end
+    
+    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
+    if localHRP then
+        localHRP.CFrame = CFrame.new(head.Position + Vector3.new(0, 2, 0))
+        
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = localHRP
+        weld.Part1 = head
+        weld.Parent = localHRP
+        
+        task.delay(0.5, function()
+            if weld then weld:Destroy() end
+        end)
+    end
+    
+    ConsolePrint("Sitting on " .. target.Name .. "'s head!")
+end
+
+-- God Mode
 local function StartGodMode()
     if godMode then return end
     godMode = true
@@ -1733,7 +2219,7 @@ local function StopGodMode()
     ConsolePrint("God Mode: OFF")
 end
 
--- ==================== FLY SYSTEM ====================
+-- Fly System
 local function StartFly()
     if flying then return end
     flying = true
@@ -1743,6 +2229,11 @@ local function StartFly()
     
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return end
+    
+    local humanoid = char:FindFirstChildOfClass("Humanoid")
+    if humanoid then
+        humanoid.PlatformStand = true
+    end
     
     flyBodyVelocity = Instance.new("BodyVelocity")
     flyBodyVelocity.MaxForce = Vector3.new(1e6, 1e6, 1e6)
@@ -1779,8 +2270,6 @@ local function StartFly()
             flyBodyVelocity.Velocity = (Camera.CFrame.RightVector * moveDirection.X + 
                                          Camera.CFrame.UpVector * moveDirection.Y + 
                                          Camera.CFrame.LookVector * moveDirection.Z) * speed
-            
-            hrp.Velocity = Vector3.new(hrp.Velocity.X, 0, hrp.Velocity.Z)
         end
     end)
     
@@ -1790,6 +2279,14 @@ end
 local function StopFly()
     if not flying then return end
     flying = false
+    
+    local char = LocalPlayer.Character
+    if char then
+        local humanoid = char:FindFirstChildOfClass("Humanoid")
+        if humanoid then
+            humanoid.PlatformStand = false
+        end
+    end
     
     if flyBodyVelocity then
         flyBodyVelocity:Destroy()
@@ -1804,7 +2301,7 @@ local function StopFly()
     ConsolePrint("Fly: OFF")
 end
 
--- ==================== NOCLIP SYSTEM (FIXED) ====================
+-- Noclip System
 local function UpdateNoclip()
     local char = LocalPlayer.Character
     if not char then return end
@@ -1845,7 +2342,7 @@ local function StopNoclip()
     ConsolePrint("Noclip: OFF")
 end
 
--- ==================== INFINITE JUMP ====================
+-- Infinite Jump
 local function StartInfiniteJump()
     if infiniteJump then return end
     infiniteJump = true
@@ -1873,7 +2370,42 @@ local function StopInfiniteJump()
     ConsolePrint("Infinite Jump: OFF")
 end
 
--- ==================== SPIN SYSTEM ====================
+-- Invisible
+local function StartInvisible()
+    if invisible then return end
+    invisible = true
+    
+    local char = LocalPlayer.Character
+    if not char then return end
+    
+    for _, part in pairs(char:GetDescendants()) do
+        if part:IsA("BasePart") then
+            originalTransparency[part] = part.Transparency
+            part.Transparency = 1
+        end
+    end
+    
+    ConsolePrint("Invisible: ON")
+end
+
+local function StopInvisible()
+    if not invisible then return end
+    invisible = false
+    
+    local char = LocalPlayer.Character
+    if char then
+        for part, original in pairs(originalTransparency) do
+            if part.Parent == char then
+                part.Transparency = original
+            end
+        end
+    end
+    originalTransparency = {}
+    
+    ConsolePrint("Invisible: OFF")
+end
+
+-- Spin System
 local function StartSpin(speed)
     if spinning then return end
     
@@ -1905,7 +2437,7 @@ local function StartSpin(speed)
         end
     end)
     
-    ConsolePrint("Spinning " .. target.Name .. " at speed " .. spinSpeedValue .. "!")
+    ConsolePrint("Spinning " .. target.Name .. " at speed " .. tostring(spinSpeedValue) .. "!")
 end
 
 local function StopSpin()
@@ -1920,7 +2452,7 @@ local function StopSpin()
     ConsolePrint("Spin stopped!")
 end
 
--- ==================== FLING SYSTEM ====================
+-- Fling System
 local function StartFling()
     if flinging then return end
     
@@ -1966,138 +2498,7 @@ local function StopFling()
     ConsolePrint("Fling stopped!")
 end
 
--- ==================== KILL PLAYER ====================
-local function KillPlayer(targetPlayer)
-    local target = targetPlayer or Admin.TargetPlayer
-    if not target or target == LocalPlayer then
-        ConsolePrint("No target selected to kill!")
-        return
-    end
-    
-    local char = target.Character
-    if char then
-        local humanoid = char:FindFirstChildOfClass("Humanoid")
-        if humanoid then
-            humanoid.Health = 0
-            ConsolePrint("Killed " .. target.Name .. "!")
-        else
-            ConsolePrint("Could not kill " .. target.Name .. "!")
-        end
-    else
-        ConsolePrint(target.Name .. " has no character!")
-    end
-end
-
--- ==================== TELEPORT ====================
-local function TeleportToPlayer(targetPlayer)
-    local target = targetPlayer
-    if not target or target == LocalPlayer then
-        ConsolePrint("No target selected to teleport to!")
-        return
-    end
-    
-    local targetChar = target.Character
-    if not targetChar then
-        ConsolePrint("Target has no character!")
-        return
-    end
-    
-    local localChar = LocalPlayer.Character
-    if not localChar then
-        ConsolePrint("You have no character!")
-        return
-    end
-    
-    local targetPos = targetChar:GetPivot().Position
-    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
-    
-    if localHRP then
-        localHRP.CFrame = CFrame.new(targetPos + Vector3.new(0, 3, 0))
-        ConsolePrint("Teleported to " .. target.Name .. "!")
-    else
-        ConsolePrint("Could not teleport!")
-    end
-end
-
--- ==================== HEADSIT ====================
-local function HeadSit(targetPlayer)
-    local target = targetPlayer or Admin.TargetPlayer
-    if not target or target == LocalPlayer then
-        ConsolePrint("No target selected for headsit!")
-        return
-    end
-    
-    local targetChar = target.Character
-    if not targetChar then
-        ConsolePrint("Target has no character!")
-        return
-    end
-    
-    local localChar = LocalPlayer.Character
-    if not localChar then
-        ConsolePrint("You have no character!")
-        return
-    end
-    
-    local head = targetChar:FindFirstChild("Head")
-    if not head then
-        ConsolePrint("Target has no head!")
-        return
-    end
-    
-    local localHRP = localChar:FindFirstChild("HumanoidRootPart")
-    if localHRP then
-        localHRP.CFrame = CFrame.new(head.Position + Vector3.new(0, 2, 0))
-        
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = localHRP
-        weld.Part1 = head
-        weld.Parent = localHRP
-        
-        task.delay(0.5, function()
-            if weld then weld:Destroy() end
-        end)
-    end
-    
-    ConsolePrint("Sitting on " .. target.Name .. "'s head!")
-end
-
--- ==================== INVISIBLE ====================
-local function StartInvisible()
-    if invisible then return end
-    invisible = true
-    
-    local char = LocalPlayer.Character
-    if not char then return end
-    
-    for _, part in pairs(char:GetDescendants()) do
-        if part:IsA("BasePart") then
-            originalTransparency[part] = part.Transparency
-            part.Transparency = 1
-        end
-    end
-    
-    ConsolePrint("Invisible: ON")
-end
-
-local function StopInvisible()
-    if not invisible then return end
-    invisible = false
-    
-    local char = LocalPlayer.Character
-    if char then
-        for part, original in pairs(originalTransparency) do
-            if part.Parent == char then
-                part.Transparency = original
-            end
-        end
-    end
-    originalTransparency = {}
-    
-    ConsolePrint("Invisible: OFF")
-end
-
--- ==================== BUILDING TOOLS ====================
+-- Building Tools
 local function GiveBuildingTools()
     local toolIds = {
         "rbxassetid://169209103",
@@ -2126,13 +2527,13 @@ local function GiveBuildingTools()
     ConsolePrint("Building tools added to backpack!")
 end
 
--- ==================== DEX EXPLORER ====================
+-- DEX Explorer
 local function OpenDEX()
     loadstring(game:HttpGet("https://github.com/AZYsGithub/DexPlusPlus/releases/latest/download/out.lua"))()
     ConsolePrint("DEX Explorer opened!")
 end
 
--- ==================== SERVER HOP ====================
+-- Server Hop
 local function ServerHop()
     local servers = {}
     
@@ -2160,80 +2561,85 @@ local function ServerHop()
     end
 end
 
--- ==================== COMMAND SYSTEM ====================
-local function ProcessCommand(msg)
-    if not string.sub(msg, 1, 1) == ";" then return end
+-- ==================== PROCESS COMMAND ====================
+
+local function ProcessCommand(cmd)
+    if not cmd or cmd == "" then return end
+    if type(cmd) ~= "string" then return end
+    
+    -- Remove the ; prefix if it exists
+    if string.sub(cmd, 1, 1) == ";" then
+        cmd = string.sub(cmd, 2)
+    end
     
     local args = {}
-    for word in string.gmatch(msg, "[^%s]+") do
+    for word in string.gmatch(cmd, "[^%s]+") do
         table.insert(args, word)
     end
     
-    local cmd = string.lower(args[1])
+    if #args == 0 then return end
     
-    if cmd == ";speed" then
+    local command = string.lower(args[1])
+    
+    -- Player Commands
+    if command == "speed" then
         local speed = tonumber(args[2])
         if speed then
             Admin.Speed = speed
-            local char = LocalPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.WalkSpeed = speed
-                end
-            end
-            ConsolePrint("Speed set to " .. speed)
+            ApplyMovementSettings()
+            ConsolePrint("Speed set to " .. tostring(speed))
         else
-            ConsolePrint("Usage: ;speed [number]")
+            ConsolePrint("Usage: speed [number]")
         end
         
-    elseif cmd == ";jumppower" or cmd == ";jp" then
+    elseif command == "jumppower" or command == "jp" then
         local jump = tonumber(args[2])
         if jump then
             Admin.JumpPower = jump
-            local char = LocalPlayer.Character
-            if char then
-                local humanoid = char:FindFirstChildOfClass("Humanoid")
-                if humanoid then
-                    humanoid.JumpPower = jump
-                end
-            end
-            ConsolePrint("Jump Power set to " .. jump)
+            ApplyMovementSettings()
+            ConsolePrint("Jump Power set to " .. tostring(jump))
         else
-            ConsolePrint("Usage: ;jumppower [number]")
+            ConsolePrint("Usage: jumppower [number]")
         end
         
-    elseif cmd == ";fly" then
+    elseif command == "fly" then
         if flying then StopFly() else StartFly() end
         
-    elseif cmd == ";noclip" then
+    elseif command == "unfly" then
+        if flying then StopFly() end
+        
+    elseif command == "noclip" then
         if noclip then StopNoclip() else StartNoclip() end
         
-    elseif cmd == ";infjump" or cmd == ";infj" then
+    elseif command == "infjump" or command == "infj" then
         if infiniteJump then StopInfiniteJump() else StartInfiniteJump() end
         
-    elseif cmd == ";invis" or cmd == ";invisible" then
+    elseif command == "invis" or command == "invisible" then
         if invisible then StopInvisible() else StartInvisible() end
         
-    elseif cmd == ";godmode" or cmd == ";god" then
+    elseif command == "godmode" or command == "god" then
         if godMode then StopGodMode() else StartGodMode() end
         
-    elseif cmd == ";target" then
+    -- Target Commands
+    elseif command == "target" then
         local targetName = args[2]
         if targetName then
             local target = GetPlayer(targetName)
             if target and target ~= LocalPlayer then
                 Admin.TargetPlayer = target
                 Admin.TargetPlayerName = target.Name
+                if targetTextbox then
+                    targetTextbox:SetText(target.Name)
+                end
                 ConsolePrint("Target set to: " .. target.Name)
             else
-                ConsolePrint("Player not found: " .. targetName)
+                ConsolePrint("Player not found: " .. tostring(targetName))
             end
         else
-            ConsolePrint("Current target: " .. (Admin.TargetPlayerName or "None"))
+            ConsolePrint("Current target: " .. (Admin.TargetPlayerName ~= "" and Admin.TargetPlayerName or "None"))
         end
         
-    elseif cmd == ";spin" then
+    elseif command == "spin" then
         local speed = tonumber(args[2])
         if spinning then 
             StopSpin() 
@@ -2245,82 +2651,137 @@ local function ProcessCommand(msg)
             end
         end
         
-    elseif cmd == ";fling" then
+    elseif command == "fling" then
         if flinging then StopFling() else StartFling() end
         
-    elseif cmd == ";kill" then
+    elseif command == "kill" then
         local targetName = args[2]
         if targetName then
             local target = GetPlayer(targetName)
             if target then
                 KillPlayer(target)
             else
-                ConsolePrint("Player not found: " .. targetName)
+                ConsolePrint("Player not found: " .. tostring(targetName))
             end
         else
             KillPlayer()
         end
         
-    elseif cmd == ";tp" then
+    elseif command == "tp" then
         local targetName = args[2]
         if targetName then
             local target = GetPlayer(targetName)
             if target then
                 TeleportToPlayer(target)
             else
-                ConsolePrint("Player not found: " .. targetName)
+                ConsolePrint("Player not found: " .. tostring(targetName))
             end
         else
-            ConsolePrint("Usage: ;tp [username]")
+            ConsolePrint("Usage: tp [username]")
         end
         
-    elseif cmd == ";headsit" then
+    elseif command == "headsit" then
         local targetName = args[2]
         if targetName then
             local target = GetPlayer(targetName)
             if target then
                 HeadSit(target)
             else
-                ConsolePrint("Player not found: " .. targetName)
+                ConsolePrint("Player not found: " .. tostring(targetName))
             end
         else
             HeadSit()
         end
         
-    elseif cmd == ";btools" then
+    -- Utility Commands
+    elseif command == "btools" then
         GiveBuildingTools()
         
-    elseif cmd == ";dex" or cmd == ";explorer" then
+    elseif command == "dex" or command == "explorer" then
         OpenDEX()
         
-    elseif cmd == ";serverinfo" or cmd == ";info" then
-        ShowServerInfoPopup()
+    elseif command == "serverinfo" or command == "info" then
+        local ping = "N/A"
+        local success, result = pcall(function()
+            local network = StatsService:FindFirstChild("Network")
+            if network then
+                local serverStats = network:FindFirstChild("ServerStatsItem")
+                if serverStats then
+                    local dataPing = serverStats:FindFirstChild("Data Ping")
+                    if dataPing then
+                        return dataPing:GetValueString()
+                    end
+                end
+            end
+            return nil
+        end)
+        if success and result then
+            ping = tostring(result)
+        end
         
-    elseif cmd == ";serverhop" or cmd == ";shop" then
+        local infoText = "=== SERVER INFO ===\n" ..
+            "Place ID: " .. tostring(game.PlaceId) .. "\n" ..
+            "Job ID: " .. tostring(game.JobId) .. "\n" ..
+            "Players: " .. tostring(#PlayersService:GetPlayers()) .. "/" .. tostring(game.Players.MaxPlayers) .. "\n" ..
+            "Ping: " .. ping .. " ms\n" ..
+            "Server Time: " .. os.date("%H:%M:%S") .. "\n" ..
+            "=================="
+        ConsolePrint(infoText)
+        
+    elseif command == "serverhop" or command == "shop" then
         ServerHop()
         
-    elseif cmd == ";cmds" or cmd == ";help" then
-        ShowCommandList()
+    elseif command == "players" or command == "playerlist" then
+        if playerListPopup then
+            playerListPopup:Destroy()
+            playerListPopup = nil
+        else
+            CreatePlayerListPopup()
+        end
         
-    elseif cmd == ";creator" then
-        CreatePopup("Creator Info", "Universal Admin Panel\nCreated for Roblox\n\nVersion 2.0", UDim2.new(0, 300, 0, 150))
+    elseif command == "cmds" or command == "help" then
+        local helpText = "=== COMMANDS ===\n" ..
+            "speed [n] - Set walk speed\n" ..
+            "jumppower [n] - Set jump power\n" ..
+            "fly / unfly - Toggle fly\n" ..
+            "noclip - Toggle noclip\n" ..
+            "infjump - Toggle infinite jump\n" ..
+            "invis - Toggle invisibility\n" ..
+            "godmode - Toggle god mode\n" ..
+            "target [name] - Select target\n" ..
+            "spin [speed] - Spin target\n" ..
+            "fling - Fling target\n" ..
+            "kill [name] - Kill player\n" ..
+            "tp [name] - Teleport to player\n" ..
+            "headsit [name] - Sit on head\n" ..
+            "btools - Give building tools\n" ..
+            "dex - Open DEX Explorer\n" ..
+            "serverinfo - Show server info\n" ..
+            "serverhop - Hop to new server\n" ..
+            "players - Show player list\n" ..
+            "cmds - Show this menu\n" ..
+            "================"
+        ConsolePrint(helpText)
+        
+    elseif command == "creator" then
+        ConsolePrint("Universal Admin Panel v2.0\nCreated for Roblox")
+    else
+        ConsolePrint("Unknown command: " .. command .. ". Type 'cmds' for help.")
     end
 end
 
 -- ==================== CHAT COMMANDS ====================
 local function SetupChatCommands()
-    -- Use a pcall to safely handle chat
     pcall(function()
         LocalPlayer.Chatted:Connect(function(msg)
             ProcessCommand(msg)
         end)
     end)
     
-    -- Try TextChatService
     pcall(function()
         local textChatService = game:GetService("TextChatService")
         if textChatService then
-            local textChannels = textChatService:WaitForChild("TextChannels", 3)
+            local textChannels = textChatService:FindFirstChild("TextChannels")
             if textChannels then
                 local rbxSystem = textChannels:FindFirstChild("RBXSystem")
                 if rbxSystem then
@@ -2341,8 +2802,10 @@ local function UpdateMovement()
     if char then
         local humanoid = char:FindFirstChildOfClass("Humanoid")
         if humanoid then
-            humanoid.WalkSpeed = Admin.Speed
-            humanoid.JumpPower = Admin.JumpPower
+            pcall(function()
+                humanoid.WalkSpeed = Admin.Speed
+                humanoid.JumpPower = Admin.JumpPower
+            end)
         end
     end
 end
@@ -2354,9 +2817,8 @@ end)
 
 -- ==================== CHARACTER ADDED ====================
 LocalPlayer.CharacterAdded:Connect(function(character)
-    UpdateMovement()
-    
     task.wait(0.5)
+    ApplyMovementSettings()
     
     if noclip then
         UpdateNoclip()
@@ -2397,12 +2859,12 @@ local PlayerSection = PlayerSubTab:CreateSection("Movement Settings")
 
 PlayerSection:CreateSlider("Walk Speed", 16, 250, Admin.Speed, function(val)
     Admin.Speed = val
-    UpdateMovement()
+    ApplyMovementSettings()
 end)
 
 PlayerSection:CreateSlider("Jump Power", 50, 250, Admin.JumpPower, function(val)
     Admin.JumpPower = val
-    UpdateMovement()
+    ApplyMovementSettings()
 end)
 
 PlayerSection:CreateToggle("Fly", Admin.Fly, function(val)
@@ -2430,41 +2892,42 @@ local TargetTab = Window:CreateTab("Target", "target")
 local TargetSubTab = TargetTab:CreateSubTab("Actions", "swords")
 local TargetSection = TargetSubTab:CreateSection("Target Selection")
 
-local currentPlayerList = UpdateTargetList()
-local targetDropdown = TargetSection:CreateDropdown("Select Target", currentPlayerList, Admin.TargetPlayerName, function(val)
-    if val ~= "None" then
-        Admin.TargetPlayer = GetPlayer(val)
-        Admin.TargetPlayerName = val
-        ConsolePrint("Target set to: " .. val)
-    else
-        Admin.TargetPlayer = nil
-        Admin.TargetPlayerName = "None"
-        ConsolePrint("Target cleared")
+-- Text input for target instead of dropdown
+targetTextbox = TargetSection:CreateTextbox("Target Player Name", Admin.TargetPlayerName, function(val)
+    if val and val ~= "" then
+        local target = GetPlayer(val)
+        if target and target ~= LocalPlayer then
+            Admin.TargetPlayer = target
+            Admin.TargetPlayerName = target.Name
+            ConsolePrint("Target set to: " .. target.Name)
+            -- Update player list highlight
+            if playerListPopup then
+                pcall(function()
+                    for _, btn in pairs(playerListPopup:GetDescendants()) do
+                        if btn:IsA("Frame") and btn:FindFirstChild("TextLabel") then
+                            local nameLabel = btn:FindFirstChild("TextLabel")
+                            if nameLabel and nameLabel.Text == target.Name then
+                                btn.BackgroundColor3 = Color3.fromRGB(160, 60, 255)
+                            elseif btn.BackgroundColor3 == Color3.fromRGB(160, 60, 255) then
+                                btn.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+                            end
+                        end
+                    end
+                end)
+            end
+        else
+            ConsolePrint("Player not found: " .. val)
+        end
     end
 end)
 
-TargetSection:CreateButton("Refresh Player List", function()
-    local newList = UpdateTargetList()
-    targetDropdown:Refresh(newList)
-    if Admin.TargetPlayerName ~= "None" then
-        local found = false
-        for _, name in pairs(newList) do
-            if name == Admin.TargetPlayerName then
-                found = true
-                break
-            end
-        end
-        if found then
-            targetDropdown:Set(Admin.TargetPlayerName)
-        else
-            targetDropdown:Set("None")
-            Admin.TargetPlayer = nil
-            Admin.TargetPlayerName = "None"
-        end
+TargetSection:CreateButton("Show Player List", function()
+    if playerListPopup then
+        playerListPopup:Destroy()
+        playerListPopup = nil
     else
-        targetDropdown:Set("None")
+        CreatePlayerListPopup()
     end
-    ConsolePrint("Player list refreshed!")
 end)
 
 TargetSection:CreateButton("Spin Target", function()
@@ -2500,19 +2963,19 @@ local UtilityTab = Window:CreateTab("Utility", "settings")
 local UtilitySubTab = UtilityTab:CreateSubTab("Tools", "save")
 local UtilitySection = UtilitySubTab:CreateSection("Utility Tools")
 
-UtilitySection:CreateButton("Give Building Tools (;btools)", function()
+UtilitySection:CreateButton("Give Building Tools (btools)", function()
     GiveBuildingTools()
 end)
 
-UtilitySection:CreateButton("Open DEX Explorer (;dex)", function()
+UtilitySection:CreateButton("Open DEX Explorer (dex)", function()
     OpenDEX()
 end)
 
-UtilitySection:CreateButton("Show Server Info (;serverinfo)", function()
-    ShowServerInfoPopup()
+UtilitySection:CreateButton("Show Server Info (serverinfo)", function()
+    ProcessCommand("serverinfo")
 end)
 
-UtilitySection:CreateButton("Server Hop (;serverhop)", function()
+UtilitySection:CreateButton("Server Hop (serverhop)", function()
     ServerHop()
 end)
 
@@ -2521,12 +2984,12 @@ local CommandsTab = Window:CreateTab("Commands", "commands")
 local CommandsSubTab = CommandsTab:CreateSubTab("Help", "globe")
 local CommandsSection = CommandsSubTab:CreateSection("Command List")
 
-CommandsSection:CreateButton("Show All Commands (;cmds)", function()
+CommandsSection:CreateButton("Show All Commands (cmds)", function()
     ShowCommandList()
 end)
 
 CommandsSection:CreateButton("Execute Custom Command", function()
-    ShowCommandPrompt(";")
+    ShowCommandPrompt("")
 end)
 
 -- Info Tab
@@ -2540,41 +3003,41 @@ InfoSection:CreateLabel("══════════════════�
 InfoSection:CreateLabel("")
 InfoSection:CreateLabel("Version: 2.0")
 InfoSection:CreateLabel("Works in ALL Roblox games!")
-InfoSection:CreateLabel("Similar to Infinite Yield")
 InfoSection:CreateLabel("")
 InfoSection:CreateLabel("HOW TO USE:")
 InfoSection:CreateLabel("Press Right Shift to toggle UI")
-InfoSection:CreateLabel("Type ;cmds in chat for commands")
-InfoSection:CreateLabel("Type ;help for command list")
+InfoSection:CreateLabel("Type commands in chat or use UI")
+InfoSection:CreateLabel("Example: fly")
+InfoSection:CreateLabel("Example: speed 50")
+InfoSection:CreateLabel("Example: target PlayerName")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("NEW FEATURES:")
+InfoSection:CreateLabel("FEATURES:")
 InfoSection:CreateLabel("God Mode - You can't die!")
 InfoSection:CreateLabel("Adjustable Spin Speed")
-InfoSection:CreateLabel("Command Prompt UI")
-InfoSection:CreateLabel("Searchable command list")
+InfoSection:CreateLabel("Live Player List with Copy")
+InfoSection:CreateLabel("Auto-Complete Command Bar")
+InfoSection:CreateLabel("Tab to autocomplete commands")
 InfoSection:CreateLabel("")
-InfoSection:CreateLabel("TIPS:")
-InfoSection:CreateLabel("Use ;target to select a player")
-InfoSection:CreateLabel("Use ;spin [speed] to set spin speed")
-InfoSection:CreateLabel("Commands work in chat")
+InfoSection:CreateLabel("COMMANDS:")
+InfoSection:CreateLabel("fly / unfly - Toggle flight")
+InfoSection:CreateLabel("players - Show player list")
+InfoSection:CreateLabel("cmds - Show all commands")
+InfoSection:CreateLabel("")
 InfoSection:CreateLabel("Drag the UI by the top bar")
-InfoSection:CreateLabel("")
-InfoSection:CreateLabel("═══════════════════════════════")
-InfoSection:CreateLabel("     Created for Roblox")
 InfoSection:CreateLabel("═══════════════════════════════")
 
 -- Start
 SetupChatCommands()
 
-if LocalPlayer.Character then
-    task.wait(0.5)
-    UpdateMovement()
-end
+-- Apply initial movement settings
+task.wait(0.5)
+ApplyMovementSettings()
 
 ConsolePrint("========================================")
 ConsolePrint("   UNIVERSAL ADMIN PANEL LOADED!")
 ConsolePrint("   Press Right Shift to open UI")
-ConsolePrint("   Type ;cmds in chat for commands")
-ConsolePrint("   Type ;godmode for God Mode")
-ConsolePrint("   Type ;spin [speed] for adjustable spin")
+ConsolePrint("   Type 'cmds' in chat for commands")
+ConsolePrint("   Type 'players' for player list")
+ConsolePrint("   Type 'fly' to fly, 'unfly' to stop")
+ConsolePrint("   Tab key autocompletes commands!")
 ConsolePrint("========================================")
