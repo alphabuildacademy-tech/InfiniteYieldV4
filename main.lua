@@ -15,7 +15,6 @@ local ContextActionService = game:GetService("ContextActionService")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local MarketplaceService = game:GetService("MarketplaceService")
-local Clipboard = game:GetService("Clipboard")
 
 local Library = { Toggled = true, Accent = Color3.fromRGB(160, 60, 255), _blockDrag = false }
 
